@@ -1,13 +1,14 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, glfw3
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  glfw3,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "glfw";
-  version = "2.5.9";
+  version = "2.8.0";
   format = "setuptools";
 
   disabled = pythonOlder "3.7";
@@ -15,27 +16,21 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "FlorianRhiem";
     repo = "pyGLFW";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-IQcUL+vVIjI/c8/GFkmw7kMmOJG/xAlxudgspC8pDvI=";
+    tag = "v${version}";
+    hash = "sha256-3jcj4YExEtK1ANKDQsq94/NKF6GXXTFTEsXO3Jpf1uQ=";
   };
 
   # Patch path to GLFW shared object
-  patches = [ ./search-path.patch ];
-
   postPatch = ''
-    substituteInPlace glfw/library.py --replace "@GLFW@" '${glfw3}/lib'
+    substituteInPlace glfw/library.py --replace "_get_library_search_paths()," "[ '${glfw3}/lib' ],"
   '';
 
-  propagatedBuildInputs = [
-    glfw3
-  ];
+  propagatedBuildInputs = [ glfw3 ];
 
   # Project has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "glfw"
-  ];
+  pythonImportsCheck = [ "glfw" ];
 
   meta = with lib; {
     description = "Python bindings for GLFW";

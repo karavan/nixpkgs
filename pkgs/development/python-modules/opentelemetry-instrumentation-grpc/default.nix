@@ -1,47 +1,43 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, hatchling
-, opentelemetry-api
-, opentelemetry-instrumentation
-, opentelemetry-sdk
-, opentelemetry-semantic-conventions
-, opentelemetry-test-utils
-, wrapt
-, pytestCheckHook
-, grpcio
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchpatch2,
+  pythonOlder,
+  hatchling,
+  opentelemetry-api,
+  opentelemetry-instrumentation,
+  opentelemetry-semantic-conventions,
+  opentelemetry-test-utils,
+  wrapt,
+  pytestCheckHook,
+  grpcio,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage {
+  inherit (opentelemetry-instrumentation) version src;
   pname = "opentelemetry-instrumentation-grpc";
-  version = "0.39b0";
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
-  src = fetchFromGitHub {
-    owner = "open-telemetry";
-    repo = "opentelemetry-python-contrib";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-DkDAE0MsF9HdywxlFzqJaqNor4O/jpnSqINsKTuiVqU=";
-    sparseCheckout = [ "/instrumentation/${pname}" ];
-  } + "/instrumentation/${pname}";
+  disabled = pythonOlder "3.8";
 
-  format = "pyproject";
+  sourceRoot = "${opentelemetry-instrumentation.src.name}/instrumentation/opentelemetry-instrumentation-grpc";
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     opentelemetry-api
     opentelemetry-instrumentation
-    opentelemetry-sdk
     opentelemetry-semantic-conventions
     wrapt
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     instruments = [ grpcio ];
+  };
+
+  env = {
+    PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION = "python";
   };
 
   nativeCheckInputs = [
@@ -50,12 +46,21 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
+  preBuild = ''
+    export TMPDIR=$(mktemp -d)
+  '';
+
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
+    # RuntimeError: Failed to bind to address
+    "TestOpenTelemetryServerInterceptorUnix"
+  ];
+
   pythonImportsCheck = [ "opentelemetry.instrumentation.grpc" ];
 
-  meta = with lib; {
+  __darwinAllowLocalNetworking = true;
+
+  meta = opentelemetry-instrumentation.meta // {
     homepage = "https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-grpc";
     description = "OpenTelemetry Instrumentation for grpc";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ happysalada ];
   };
 }

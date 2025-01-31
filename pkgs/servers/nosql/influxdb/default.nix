@@ -1,32 +1,52 @@
-{ lib, buildGoModule, fetchFromGitHub, stdenv, pkg-config, rustPlatform, libiconv, fetchpatch, nixosTests }:
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  stdenv,
+  pkg-config,
+  rustPlatform,
+  libiconv,
+  fetchpatch,
+  nixosTests,
+}:
 
 let
-  libflux_version = "0.170.1";
+  libflux_version = "0.194.5";
 
-  # This is copied from influxdb2 with flux version matching the needed by thi
-  flux = rustPlatform.buildRustPackage {
+  # This is copied from influxdb2 with the required flux version
+  flux = rustPlatform.buildRustPackage rec {
     pname = "libflux";
     version = "v${libflux_version}";
     src = fetchFromGitHub {
       owner = "influxdata";
       repo = "flux";
       rev = "v${libflux_version}";
-      sha256 = "sha256-P3SpleOVbL+nGWdscwjj9yWqRdck/9JsAwuJtGOO7N8=";
+      hash = "sha256-XHT/+JMu5q1cPjZT2x/OKEPgxFJcnjrQKqn8w9/Mb3s=";
     };
     patches = [
-      # https://github.com/influxdata/flux/pull/5273
-      # fix compile error with Rust 1.64
+      # Fix build on Rust 1.78 (included after v0.195.0)
       (fetchpatch {
-        url = "https://github.com/influxdata/flux/commit/20ca62138a0669f2760dd469ca41fc333e04b8f2.patch";
+        name = "fix-build-on-rust-1.78.patch";
+        url = "https://github.com/influxdata/flux/commit/68c831c40b396f0274f6a9f97d77707c39970b02.patch";
         stripLen = 2;
         extraPrefix = "";
-        sha256 = "sha256-Fb4CuH9ZvrPha249dmLLI8MqSNQRKqKPxPbw2pjqwfY=";
+        excludes = [ ];
+        hash = "sha256-6LOTgbOCfETNTmshyXgtDZf9y4t/2iqRuVPkz9dYPHc=";
       })
+      ../influxdb2/fix-unsigned-char.patch
+      # https://github.com/influxdata/flux/pull/5516
+      ../influxdb2/rust_lifetime.patch
     ];
-    sourceRoot = "source/libflux";
-    cargoSha256 = "sha256-kYiZ5ZRiFHRf1RQeeUGjIhnEkTvhNSZ0t4tidpRIDyk=";
+    # Don't fail on missing code documentation
+    postPatch = ''
+      substituteInPlace flux-core/src/lib.rs \
+        --replace-fail "deny(warnings, missing_docs))]" "deny(warnings))]"
+    '';
+    sourceRoot = "${src.name}/libflux";
+    useFetchCargoVendor = true;
+    cargoHash = "sha256-wJVvpjaBUae3FK3lQaQov4t0UEsH86tB8B8bsSFGGBU=";
     nativeBuildInputs = [ rustPlatform.bindgenHook ];
-    buildInputs = lib.optional stdenv.isDarwin libiconv;
+    buildInputs = lib.optional stdenv.hostPlatform.isDarwin libiconv;
     pkgcfg = ''
       Name: flux
       Version: ${libflux_version}
@@ -35,28 +55,30 @@ let
       Libs: -L/out/lib -lflux -lpthread
     '';
     passAsFile = [ "pkgcfg" ];
-    postInstall = ''
-      mkdir -p $out/include $out/pkgconfig
-      cp -r $NIX_BUILD_TOP/source/libflux/include/influxdata $out/include
-      substitute $pkgcfgPath $out/pkgconfig/flux.pc \
-        --replace /out $out
-    '' + lib.optionalString stdenv.isDarwin ''
-      install_name_tool -id $out/lib/libflux.dylib $out/lib/libflux.dylib
-    '';
+    postInstall =
+      ''
+        mkdir -p $out/include $out/pkgconfig
+        cp -r $NIX_BUILD_TOP/source/libflux/include/influxdata $out/include
+        substitute $pkgcfgPath $out/pkgconfig/flux.pc \
+          --replace /out $out
+      ''
+      + lib.optionalString stdenv.hostPlatform.isDarwin ''
+        install_name_tool -id $out/lib/libflux.dylib $out/lib/libflux.dylib
+      '';
   };
 in
 buildGoModule rec {
   pname = "influxdb";
-  version = "1.10.0";
+  version = "1.10.7";
 
   src = fetchFromGitHub {
     owner = "influxdata";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-BMHR9EdYC+8oA0he7emzBRmNnHn15nO/5NqsLcr+R0k=";
+    hash = "sha256-Aibu3yG/D1501Hr2F2qsGvjig14tbEAI+MBfqbxlpg8=";
   };
 
-  vendorSha256 = "sha256-AY04cmfg7vbrWR4+LBuCFYqBgQJBXlPpO+2oj0qqjM4=";
+  vendorHash = "sha256-AA6uj7PgXjC+IK2ZSwRnYpHS4MFScOROO1BpP+s33IU=";
 
   nativeBuildInputs = [ pkg-config ];
 
@@ -73,16 +95,25 @@ buildGoModule rec {
 
   doCheck = false;
 
-  ldflags = [ "-s" "-w" "-X main.version=${version}" ];
+  ldflags = [
+    "-s"
+    "-w"
+    "-X main.version=${version}"
+  ];
 
   excludedPackages = "test";
 
-  passthru.tests = { inherit (nixosTests) influxdb; };
+  passthru.tests = {
+    inherit (nixosTests) influxdb;
+  };
 
   meta = with lib; {
-    description = "An open-source distributed time series database";
+    description = "Open-source distributed time series database";
     license = licenses.mit;
     homepage = "https://influxdata.com/";
-    maintainers = with maintainers; [ offline zimbatm ];
+    maintainers = with maintainers; [
+      offline
+      zimbatm
+    ];
   };
 }

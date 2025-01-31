@@ -1,52 +1,56 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitLab
-, poetry-core
-, cssselect
-, lxml
-, numpy
-, packaging
-, pillow
-, pygobject3
-, pyserial
-, scour
-, gobject-introspection
-, pytestCheckHook
-, gtk3
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  inkscape,
+  poetry-core,
+  cssselect,
+  lxml,
+  numpy,
+  packaging,
+  pillow,
+  pygobject3,
+  pyparsing,
+  pyserial,
+  scour,
+  tinycss2,
+  gobject-introspection,
+  pytestCheckHook,
+  gtk3,
+  fetchpatch2,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "inkex";
-  version = "1.2.2";
+  inherit (inkscape) version;
+  pyproject = true;
 
-  format = "pyproject";
+  inherit (inkscape) src;
 
-  src = fetchFromGitLab {
-    owner = "inkscape";
-    repo = "extensions";
-    rev = "EXTENSIONS_AT_INKSCAPE_${version}";
-    hash = "sha256-jw7daZQTBxLHWOpjZkMYtP1vIQvd/eLgiktWqVSjEgU=";
-  };
-
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace '"1.2.0"' '"${version}"' \
-      --replace 'scour = "^0.37"' 'scour = ">=0.37"'
-  '';
-
-  nativeBuildInputs = [
-    poetry-core
+  patches = [
+    (fetchpatch2 {
+      name = "add-numpy-2-support.patch";
+      url = "https://gitlab.com/inkscape/extensions/-/commit/13ebc1e957573fea2c3360f676b0f1680fad395d.patch";
+      hash = "sha256-0n8L8dUaYYPBsmHlAxd60c5zqfK6NmXJfWZVBXPbiek=";
+      stripLen = 1;
+      extraPrefix = "share/extensions/";
+    })
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  pythonRelaxDeps = [ "numpy" ];
+
+  dependencies = [
     cssselect
     lxml
     numpy
-    packaging
     pillow
     pygobject3
+    pyparsing
     pyserial
     scour
+    tinycss2
   ];
 
   pythonImportsCheck = [ "inkex" ];
@@ -60,10 +64,16 @@ buildPythonPackage rec {
     gtk3
   ];
 
-  disabledTests = [
-    "test_extract_multiple"
-    "test_lookup_and"
-  ];
+  disabledTests =
+    [
+      "test_extract_multiple"
+      "test_lookup_and"
+    ]
+    ++ lib.optional stdenv.hostPlatform.isDarwin [
+      "test_image_extract"
+      "test_path_number_nodes"
+      "test_plotter" # Hangs
+    ];
 
   disabledTestPaths = [
     # Fatal Python error: Segmentation fault
@@ -73,6 +83,13 @@ buildPythonPackage rec {
     # Failed to find pixmap 'image-missing' in /build/source/tests/data/
     "tests/test_inkex_gui_pixmaps.py"
   ];
+
+  postPatch = ''
+    cd share/extensions
+
+    substituteInPlace pyproject.toml \
+      --replace-fail 'scour = "^0.37"' 'scour = ">=0.37"'
+  '';
 
   meta = {
     description = "Library for manipulating SVG documents which is the basis for Inkscape extensions";

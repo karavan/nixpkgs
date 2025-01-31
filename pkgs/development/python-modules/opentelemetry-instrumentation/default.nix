@@ -1,38 +1,37 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, hatchling
-, opentelemetry-api
-, opentelemetry-sdk
-, opentelemetry-test-utils
-, setuptools
-, wrapt
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  opentelemetry-api,
+  opentelemetry-test-utils,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  wrapt,
 }:
 
 buildPythonPackage rec {
   pname = "opentelemetry-instrumentation";
-  version = "0.39b0";
-  disabled = pythonOlder "3.7";
+  version = "0.48b0";
+  pyproject = true;
 
+  disabled = pythonOlder "3.8";
+
+  # To avoid breakage, every package in opentelemetry-python-contrib must inherit this version, src, and meta
   src = fetchFromGitHub {
     owner = "open-telemetry";
     repo = "opentelemetry-python-contrib";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-+zk76A640nyd1L0I55JrMMs7EnQ+SPQdYGAFIyQFc6E=";
-    sparseCheckout = [ "/${pname}" ];
-  } + "/${pname}";
+    tag = "v${version}";
+    hash = "sha256-RsOOCDbxT0e0WGfI8Ibv6E51ei+sTg07F8d+30+JrVU=";
+  };
 
-  format = "pyproject";
+  sourceRoot = "${src.name}/opentelemetry-instrumentation";
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     opentelemetry-api
-    opentelemetry-sdk
     setuptools
     wrapt
   ];
@@ -44,10 +43,21 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "opentelemetry.instrumentation" ];
 
+  disabledTests = [
+    # bootstrap: error: argument -a/--action: invalid choice: 'pipenv' (choose from install, requirements)
+    # RuntimeError: Patch is already started
+    "test_run_cmd_install"
+    "test_run_cmd_print"
+    "test_run_unknown_cmd"
+  ];
+
+  passthru.updateScript = opentelemetry-api.updateScript;
+
   meta = with lib; {
-    homepage = "https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/opentelemetry-instrumentation";
     description = "Instrumentation Tools & Auto Instrumentation for OpenTelemetry Python";
+    homepage = "https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/opentelemetry-instrumentation";
+    changelog = "https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v${version}";
     license = licenses.asl20;
-    maintainers = teams.deshaw.members;
+    maintainers = teams.deshaw.members ++ [ maintainers.natsukium ];
   };
 }

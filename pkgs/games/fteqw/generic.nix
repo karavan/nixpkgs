@@ -1,30 +1,40 @@
-{ lib
-, fetchsvn
-, stdenv
-, libopus
-, xorg
-, pname
-, releaseFile ? pname
-, buildFlags
-, buildInputs
-, nativeBuildInputs ? []
-, postFixup ? ""
-, description
-, ... }:
+{
+  lib,
+  fetchFromGitHub,
+  stdenv,
+  libopus,
+  xorg,
+  pname,
+  releaseFile ? pname,
+  buildFlags,
+  buildInputs,
+  nativeBuildInputs ? [ ],
+  postFixup ? "",
+  description,
+  ...
+}:
 
 stdenv.mkDerivation {
-  inherit pname buildFlags buildInputs nativeBuildInputs postFixup;
-  version = "unstable-2022-08-09";
+  inherit
+    pname
+    buildFlags
+    buildInputs
+    nativeBuildInputs
+    postFixup
+    ;
+  version = "0-unstable-2024-04-13";
 
-  src = fetchsvn {
-    url = "https://svn.code.sf.net/p/fteqw/code/trunk";
-    rev = "6303";
-    sha256 = "sha256-tSTFX59iVUvndPRdREayKpkQ+YCYKCMQe2PXZfnTgPQ=";
+  src = fetchFromGitHub {
+    owner = "fte-team";
+    repo = "fteqw";
+    rev = "1f9f3635f0aef3b2eed6b40e35fcf6223c6ad533";
+    hash = "sha256-AgTkkP8pT6yioIcVNpxmfCFF0M+7BGx3TXgQSkOgfPI=";
   };
 
   makeFlags = [
     "PKGCONFIG=$(PKG_CONFIG)"
-    "-C" "engine"
+    "-C"
+    "engine"
   ];
 
   enableParallelBuilding = true;
@@ -45,7 +55,7 @@ stdenv.mkDerivation {
 
   meta = with lib; {
     inherit description;
-    homepage = "https://fte.triptohell.info";
+    homepage = "https://fteqw.org";
     longDescription = ''
       FTE is a game engine baed on QuakeWorld able to
       play games such as Quake 1, 2, 3, and Hexen 2.

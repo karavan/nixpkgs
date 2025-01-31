@@ -1,20 +1,20 @@
-{ lib, stdenv
-, fetchurl
-, mrustc
-, mrustc-minicargo
-, rust
-, llvm_12
-, llvmPackages_12
-, libffi
-, cmake
-, python3
-, zlib
-, libxml2
-, openssl
-, pkg-config
-, curl
-, which
-, time
+{
+  lib,
+  stdenv,
+  fetchurl,
+  mrustc,
+  mrustc-minicargo,
+  llvm_12,
+  libffi,
+  cmake,
+  python3,
+  zlib,
+  libxml2,
+  openssl,
+  pkg-config,
+  curl,
+  which,
+  time,
 }:
 
 let
@@ -63,7 +63,10 @@ stdenv.mkDerivation rec {
   ];
   buildInputs = [
     # for rustc
-    llvm_12 libffi zlib libxml2
+    llvm_12
+    libffi
+    zlib
+    libxml2
     # for cargo
     openssl
     (curl.override { inherit openssl; })
@@ -74,7 +77,7 @@ stdenv.mkDerivation rec {
     "MRUSTC=${mrustc}/bin/mrustc"
     #"MINICARGO=${mrustc-minicargo}/bin/minicargo"  # FIXME: we need to rebuild minicargo locally so --manifest-overrides is applied
     "LLVM_CONFIG=${llvm_12.dev}/bin/llvm-config"
-    "RUSTC_TARGET=${rust.toRustTarget stdenv.targetPlatform}"
+    "RUSTC_TARGET=${stdenv.targetPlatform.rust.rustcTarget}"
   ];
 
   buildPhase = ''
@@ -129,21 +132,26 @@ stdenv.mkDerivation rec {
     cp run_rustc/${outputDir}/prefix/bin/rustc_binary $out/bin/rustc
 
     cp -r run_rustc/${outputDir}/prefix/lib/* $out/lib/
-    cp $out/lib/rustlib/${rust.toRustTarget stdenv.targetPlatform}/lib/*.so $out/lib/
+    cp $out/lib/rustlib/${stdenv.targetPlatform.rust.rustcTarget}/lib/*.so $out/lib/
     runHook postInstall
   '';
 
   meta = with lib; {
     inherit (src.meta) homepage;
-    description = "A minimal build of Rust";
+    description = "Minimal build of Rust";
     longDescription = ''
       A minimal build of Rust, built from source using mrustc.
       This is useful for bootstrapping the main Rust compiler without
       an initial binary toolchain download.
     '';
-    maintainers = with maintainers; [ progval r-burns ];
-    license = with licenses; [ mit asl20 ];
+    maintainers = with maintainers; [
+      progval
+      r-burns
+    ];
+    license = with licenses; [
+      mit
+      asl20
+    ];
     platforms = [ "x86_64-linux" ];
   };
 }
-

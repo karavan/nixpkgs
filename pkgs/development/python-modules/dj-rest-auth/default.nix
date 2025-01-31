@@ -1,54 +1,54 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, django
-, django-allauth
-, djangorestframework
-, djangorestframework-simplejwt
-, responses
-, unittest-xml-reporting
-, python
+{
+  lib,
+  buildPythonPackage,
+  django,
+  django-allauth,
+  djangorestframework,
+  djangorestframework-simplejwt,
+  fetchFromGitHub,
+  python,
+  responses,
+  setuptools,
+  unittest-xml-reporting,
 }:
 
 buildPythonPackage rec {
   pname = "dj-rest-auth";
-  version = "3.0.0";
+  version = "7.0.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "iMerica";
     repo = "dj-rest-auth";
-    rev = "refs/tags/${version}";
-    hash = "sha256-wkbFUrvKhdp2Hd4QkXAvhMiaqSXFD/fgIw03nLPaO5I=";
+    tag = version;
+    hash = "sha256-bus7Sf5H4PA5YFrkX7hbALOq04koDz3KTO42hHFJPhw=";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "coveralls>=1.11.1" "" \
-      --replace "==" ">="
+      --replace-fail "==" ">="
   '';
 
-  buildInputs = [
-    django
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    djangorestframework
-  ];
+  buildInputs = [ django ];
 
-  passthru.optional-dependencies.with_social = [
+  dependencies = [ djangorestframework ];
+
+  optional-dependencies.with_social = [
     django-allauth
-  ];
+  ] ++ django-allauth.optional-dependencies.socialaccount;
 
   nativeCheckInputs = [
     djangorestframework-simplejwt
     responses
     unittest-xml-reporting
-  ] ++ passthru.optional-dependencies.with_social;
+  ] ++ optional-dependencies.with_social;
 
   preCheck = ''
-    # connects to graph.facebook.com
+    # Test connects to graph.facebook.com
     substituteInPlace dj_rest_auth/tests/test_serializers.py \
-      --replace "def test_http_error" "def dont_test_http_error"
+      --replace-fail "def test_http_error" "def dont_test_http_error"
   '';
 
   checkPhase = ''
@@ -62,7 +62,8 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Authentication for Django Rest Framework";
     homepage = "https://github.com/iMerica/dj-rest-auth";
+    changelog = "https://github.com/iMerica/dj-rest-auth/releases/tag/${version}";
     license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    maintainers = [ ];
   };
 }

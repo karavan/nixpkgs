@@ -1,9 +1,10 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, qtbase
-, qtsvg
-, wrapQtAppsHook
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  qtbase,
+  qtsvg,
+  wrapQtAppsHook,
 }:
 
 stdenv.mkDerivation rec {
@@ -27,7 +28,7 @@ stdenv.mkDerivation rec {
     wrapQtAppsHook
   ];
 
-  sourceRoot = "source/src";
+  sourceRoot = "${src.name}/src";
 
   buildPhase = ''
     runHook preBuild

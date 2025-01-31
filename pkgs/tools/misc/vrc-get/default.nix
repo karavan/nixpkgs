@@ -1,29 +1,47 @@
-{ fetchFromGitHub, lib, rustPlatform, pkg-config, openssl, stdenv, Security }:
+{
+  fetchCrate,
+  installShellFiles,
+  lib,
+  rustPlatform,
+  pkg-config,
+  stdenv,
+  buildPackages,
+}:
 
 rustPlatform.buildRustPackage rec {
   pname = "vrc-get";
-  version = "1.1.2";
+  version = "1.9.0";
 
-  src = fetchFromGitHub {
-    owner = "anatawa12";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "03p3y6q6md2m6fj9v01419cy1wa13dhasd2izs7j9gl9jh69w9xm";
+  src = fetchCrate {
+    inherit pname version;
+    hash = "sha256-gZtaeq/PDVFZPIMH/cB/ZJNP+SbksPPbz8L8Hc7FDM8=";
   };
 
-  nativeBuildInputs = [ pkg-config ];
+  nativeBuildInputs = [
+    installShellFiles
+    pkg-config
+  ];
 
-  buildInputs = [ openssl ] ++ lib.optionals stdenv.isDarwin [ Security ];
+  cargoHash = "sha256-xfW9pIaSL9bvGXk4XxRUVyvtRwKXmjS3Gc5b7v7q17A=";
 
-  # Make openssl-sys use pkg-config.
-  OPENSSL_NO_VENDOR = 1;
-
-  cargoSha256 = "03lv72gw39q7hibg2rzibvc1y0az30691jdf2fwn1m5ng0r7lqvp";
+  # Execute the resulting binary to generate shell completions, using emulation if necessary when cross-compiling.
+  # If no emulator is available, then give up on generating shell completions
+  postInstall =
+    let
+      vrc-get = "${stdenv.hostPlatform.emulator buildPackages} $out/bin/vrc-get";
+    in
+    lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages) ''
+      installShellCompletion --cmd vrc-get \
+        --bash <(${vrc-get} completion bash) \
+        --fish <(${vrc-get} completion fish) \
+        --zsh <(${vrc-get} completion zsh)
+    '';
 
   meta = with lib; {
     description = "Command line client of VRChat Package Manager, the main feature of VRChat Creator Companion (VCC)";
-    homepage = "https://github.com/anatawa12/vrc-get";
+    homepage = "https://github.com/vrc-get/vrc-get";
     license = licenses.mit;
     maintainers = with maintainers; [ bddvlpr ];
+    mainProgram = "vrc-get";
   };
 }

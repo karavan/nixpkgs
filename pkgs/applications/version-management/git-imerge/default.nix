@@ -1,4 +1,9 @@
-{ lib, buildPythonApplication, fetchPypi, installShellFiles }:
+{
+  lib,
+  buildPythonApplication,
+  fetchPypi,
+  installShellFiles,
+}:
 
 buildPythonApplication rec {
   pname = "git-imerge";
@@ -20,5 +25,6 @@ buildPythonApplication rec {
     description = "Perform a merge between two branches incrementally";
     license = licenses.gpl2Plus;
     maintainers = [ ];
+    mainProgram = "git-imerge";
   };
 }

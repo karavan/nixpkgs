@@ -3,30 +3,53 @@
 # This is separate because the CF build is completely different and part of
 # stdenv. Merging the two was kept outside of the scope of Swift work.
 
-{ lib
-, stdenv
-, callPackage
-, cmake
-, ninja
-, swift
-, Dispatch
-, icu
-, libxml2
-, curl
+{
+  lib,
+  stdenv,
+  fetchpatch,
+  callPackage,
+  cmake,
+  ninja,
+  swift,
+  Dispatch,
+  icu,
+  libxml2,
+  curl,
 }:
 
 let
   sources = callPackage ../sources.nix { };
-in stdenv.mkDerivation {
+in
+stdenv.mkDerivation {
   pname = "swift-corelibs-foundation";
 
   inherit (sources) version;
   src = sources.swift-corelibs-foundation;
 
-  outputs = [ "out" "dev" ];
+  patches = [
+    # from https://github.com/apple/swift-corelibs-foundation/pull/4811
+    # fix build with glibc >=2.38
+    (fetchpatch {
+      url = "https://github.com/apple/swift-corelibs-foundation/commit/47260803a108c6e0d639adcebeed3ac6a76e8bcd.patch";
+      hash = "sha256-1JUSQW86IHKkBZqxvpk0P8zcSKntzOTNlMoGBfgeT4c=";
+    })
+  ];
 
-  nativeBuildInputs = [ cmake ninja swift ];
-  buildInputs = [ icu libxml2 curl ];
+  outputs = [
+    "out"
+    "dev"
+  ];
+
+  nativeBuildInputs = [
+    cmake
+    ninja
+    swift
+  ];
+  buildInputs = [
+    icu
+    libxml2
+    curl
+  ];
   propagatedBuildInputs = [ Dispatch ];
 
   preConfigure = ''
@@ -53,9 +76,10 @@ in stdenv.mkDerivation {
 
   meta = {
     description = "Core utilities, internationalization, and OS independence for Swift";
+    mainProgram = "plutil";
     homepage = "https://github.com/apple/swift-corelibs-foundation";
     platforms = lib.platforms.linux;
     license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ dtzWill trepetti dduan trundle stephank ];
+    maintainers = lib.teams.swift.members;
   };
 }

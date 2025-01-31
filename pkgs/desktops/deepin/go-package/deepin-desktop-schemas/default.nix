@@ -1,57 +1,57 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, buildGoPackage
-, go-lib
-, glib
+{
+  stdenv,
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  glib,
 }:
-buildGoPackage rec {
-  pname = "deepin-desktop-schemas";
-  version = "5.10.11";
 
-  goPackagePath = "github.com/linuxdeepin/deepin-desktop-schemas";
+buildGoModule rec {
+  pname = "deepin-desktop-schemas";
+  version = "6.0.7";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = pname;
     rev = version;
-    sha256 = "sha256-MboNj0zC3azavDUsmeNNafCcUa0GeoySl610+WOtNww=";
+    hash = "sha256-Zp80Yz0qkFAwpQJPgs/gcfCG2DMtvpKdVKRlqOTmaCk=";
   };
 
-  nativeBuildInputs = [ glib ];
-  buildInputs = [ go-lib ];
+  vendorHash = "sha256-q6ugetchJLv2JjZ9+nevUI0ptizh2V+6SByoY/eFJJQ=";
 
   postPatch = ''
     # Relocate files path for backgrounds and wallpapers
     for file in $(grep -rl "/usr/share")
     do
       substituteInPlace $file \
-        --replace "/usr/share" "/run/current-system/sw/share"
+        --replace-fail "/usr/share" "/run/current-system/sw/share"
     done
   '';
 
   buildPhase = ''
     runHook preBuild
-    addToSearchPath GOPATH "${go-lib}/share/gocode"
-    make ARCH=${stdenv.targetPlatform.linuxArch} -C go/src/${goPackagePath}
+    make ARCH=${stdenv.hostPlatform.linuxArch}
     runHook postBuild
+  '';
+
+  nativeCheckInputs = [ glib ];
+  checkPhase = ''
+    runHook preCheck
+    make test
+    runHook postCheck
   '';
 
   installPhase = ''
     runHook preInstall
-    make install DESTDIR="$out" PREFIX="/" -C go/src/${goPackagePath}
+    make install DESTDIR="$out" PREFIX="/"
     runHook postInstall
   '';
 
-  preFixup = ''
-    glib-compile-schemas ${glib.makeSchemaPath "$out" "${pname}-${version}"}
-  '';
-
-  meta = with lib; {
+  meta = {
     description = "GSettings deepin desktop-wide schemas";
     homepage = "https://github.com/linuxdeepin/deepin-desktop-schemas";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    maintainers = teams.deepin.members;
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.linux;
+    maintainers = lib.teams.deepin.members;
   };
 }

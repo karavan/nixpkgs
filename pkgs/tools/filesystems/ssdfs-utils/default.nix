@@ -1,10 +1,11 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, autoreconfHook
-, libtool
-, libuuid
-, zlib
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  autoreconfHook,
+  libtool,
+  libuuid,
+  zlib,
 }:
 
 stdenv.mkDerivation {
@@ -12,13 +13,13 @@ stdenv.mkDerivation {
   # as ssdfs-utils, not ssdfs-tools.
   pname = "ssdfs-utils";
   # The version is taken from `configure.ac`, there are no tags.
-  version = "4.27";
+  version = "4.49";
 
   src = fetchFromGitHub {
     owner = "dubeyko";
     repo = "ssdfs-tools";
-    rev = "9b647d73b34dc2e18ed04bfcf5e260ffb8242dd5";
-    hash = "sha256-7I7h6Szb/oXtkypd7Nk4AFrTEsn9Y/1/u+IaL63zRVI=";
+    rev = "cd080289b2183125a7adeba3d3b01481913cf810";
+    hash = "sha256-ydt3xom9Tzf+kImPgg25y4Ht52WYwFSy8bAiy6AoiY4=";
   };
 
   strictDeps = true;

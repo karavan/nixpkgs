@@ -1,47 +1,48 @@
-{ stdenv
-, lib
-, rustPlatform
-, fetchFromGitHub
-, pkg-config
-, Foundation
-, dbusSupport ? stdenv.isLinux, dbus
-# rustls will be used for TLS if useOpenSSL=false
-, useOpenSSL ? stdenv.isLinux, openssl
-, notificationSupport ? stdenv.isLinux
+{
+  stdenv,
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  pkg-config,
+  Foundation,
+  dbusSupport ? stdenv.hostPlatform.isLinux,
+  dbus,
+  # rustls will be used for TLS if useOpenSSL=false
+  useOpenSSL ? stdenv.hostPlatform.isLinux,
+  openssl,
+  notificationSupport ? stdenv.hostPlatform.isLinux,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "tiny";
-  version = "0.11.0";
+  version = "0.13.0";
 
   src = fetchFromGitHub {
     owner = "osa1";
-    repo = pname;
+    repo = "tiny";
     rev = "v${version}";
-    hash = "sha256-oOaLQh9gJlurHi9awoRh4wQnXwkuOGJLnGQA6di6k1Q=";
+    hash = "sha256-phjEae2SS3zkSpuhhE4iscUM8ij8DT47YLIMATMG/+Q=";
   };
 
-  cargoPatches = [ ./Cargo.lock.patch ];
+  cargoHash = "sha256-DvFrRH6wObMvkRxS8vh3tlCrZNAiuZHfN0ARagMfG2k=";
 
-  cargoHash = "sha256-wUBScLNRNAdDZ+HpQjYiExgPJnE9cxviooHePbJI13Q=";
-
-  nativeBuildInputs = lib.optional stdenv.isLinux pkg-config;
-  buildInputs = lib.optionals dbusSupport [ dbus ]
-                ++ lib.optionals useOpenSSL [ openssl ]
-                ++ lib.optional stdenv.isDarwin Foundation;
+  nativeBuildInputs = lib.optional stdenv.hostPlatform.isLinux pkg-config;
+  buildInputs =
+    lib.optionals dbusSupport [ dbus ]
+    ++ lib.optionals useOpenSSL [ openssl ]
+    ++ lib.optional stdenv.hostPlatform.isDarwin Foundation;
 
   buildFeatures = lib.optional notificationSupport "desktop-notifications";
 
-  checkFlags = [
-    # flaky test
-    "--skip=tests::config::parsing_tab_configs"
-  ];
-
   meta = with lib; {
-    description = "A console IRC client";
+    description = "Console IRC client";
     homepage = "https://github.com/osa1/tiny";
-    changelog = "https://github.com/osa1/tiny/raw/v${version}/CHANGELOG.md";
+    changelog = "https://github.com/osa1/tiny/blob/v${version}/CHANGELOG.md";
     license = licenses.mit;
-    maintainers = with maintainers; [ Br1ght0ne vyp ];
+    maintainers = with maintainers; [
+      Br1ght0ne
+      vyp
+    ];
+    mainProgram = "tiny";
   };
 }

@@ -1,42 +1,63 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, cvxopt
-, ecos
-, fetchPypi
-, numpy
-, osqp
-, pytestCheckHook
-, pythonOlder
-, scipy
-, scs
-, setuptools
-, useOpenmp ? (!stdenv.isDarwin)
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  numpy,
+  pybind11,
+  setuptools,
+
+  # dependencies
+  clarabel,
+  cvxopt,
+  osqp,
+  scipy,
+  scs,
+
+  # checks
+  hypothesis,
+  pytestCheckHook,
+
+  useOpenmp ? (!stdenv.hostPlatform.isDarwin),
 }:
 
 buildPythonPackage rec {
   pname = "cvxpy";
-  version = "1.3.1";
-  format = "pyproject";
+  version = "1.6.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-8Hv+k2d6dVqFVMT9piLvAeIkes6Zs6eBB6qQcODQo8s=";
+  src = fetchFromGitHub {
+    owner = "cvxpy";
+    repo = "cvxpy";
+    tag = "v${version}";
+    hash = "sha256-t2+j0ZrvGvTv6FoNVpD2MVFZKfGgqTaN32OKwBXM3Zw=";
   };
 
-  propagatedBuildInputs = [
+  # we need to patch out numpy version caps from upstream
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "numpy >= 2.0.0" "numpy"
+  '';
+
+  build-system = [
+    numpy
+    pybind11
+    setuptools
+  ];
+
+  dependencies = [
+    clarabel
     cvxopt
-    ecos
     numpy
     osqp
     scipy
     scs
-    setuptools
   ];
 
   nativeCheckInputs = [
+    hypothesis
     pytestCheckHook
   ];
 
@@ -46,30 +67,24 @@ buildPythonPackage rec {
     export LDFLAGS="-lgomp"
   '';
 
-  pytestFlagsArray = [
-    "cvxpy"
-  ];
+  pytestFlagsArray = [ "cvxpy" ];
 
   disabledTests = [
-   # Disable the slowest benchmarking tests, cuts test time in half
+    # Disable the slowest benchmarking tests, cuts test time in half
     "test_tv_inpainting"
     "test_diffcp_sdp_example"
     "test_huber"
     "test_partial_problem"
-  ] ++ lib.optionals stdenv.isAarch64 [
-    "test_ecos_bb_mi_lp_2" # https://github.com/cvxpy/cvxpy/issues/1241#issuecomment-780912155
   ];
 
-  pythonImportsCheck = [
-    "cvxpy"
-  ];
+  pythonImportsCheck = [ "cvxpy" ];
 
-  meta = with lib; {
-    description = "A domain-specific language for modeling convex optimization problems in Python";
+  meta = {
+    description = "Domain-specific language for modeling convex optimization problems in Python";
     homepage = "https://www.cvxpy.org/";
     downloadPage = "https://github.com/cvxpy/cvxpy//releases";
-    changelog = "https://github.com/cvxpy/cvxpy/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ drewrisinger ];
+    changelog = "https://github.com/cvxpy/cvxpy/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ drewrisinger ];
   };
 }

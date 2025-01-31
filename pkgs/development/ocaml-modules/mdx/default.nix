@@ -1,23 +1,24 @@
 { lib, fetchurl, buildDunePackage, ocaml, findlib
 , alcotest
-, astring, cppo, fmt, logs, ocaml-version, odoc-parser, lwt, re, csexp
+, astring, cppo, fmt, logs, ocaml-version, camlp-streams, lwt, re, csexp
 , gitUpdater
 }:
 
 buildDunePackage rec {
   pname = "mdx";
-  version = "2.3.0";
+  version = "2.5.0";
 
   minimalOCamlVersion = "4.08";
-  duneVersion = "3";
 
   src = fetchurl {
     url = "https://github.com/realworldocaml/mdx/releases/download/${version}/mdx-${version}.tbz";
-    hash = "sha256-MqCDmBAK/S0ueYi8O0XJtplxJx96twiFHe04Q8lHBmE=";
+    hash = "sha256-wtpY19UYLxXARvsyC7AsFmAtLufLmfNJ4/SEHCY2UCk=";
   };
 
   nativeBuildInputs = [ cppo ];
-  propagatedBuildInputs = [ astring fmt logs csexp ocaml-version odoc-parser re findlib ];
+  propagatedBuildInputs = [
+    astring fmt logs csexp ocaml-version camlp-streams re findlib
+  ];
   checkInputs = [ alcotest lwt ];
 
   doCheck = true;

@@ -2,17 +2,18 @@
 , stdenv
 , fetchFromGitHub
 , nix-update-script
-, substituteAll
+, replaceVars
 , meson
 , ninja
 , pkg-config
 , vala
+, libadwaita
 , libgee
+, gettext
 , gnome-settings-daemon
-, granite
+, granite7
 , gsettings-desktop-schemas
-, gtk3
-, libhandy
+, gtk4
 , libxml2
 , libgnomekbd
 , libxklavier
@@ -23,24 +24,27 @@
 
 stdenv.mkDerivation rec {
   pname = "switchboard-plug-keyboard";
-  version = "3.1.1";
+  version = "8.0.1";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = pname;
     rev = version;
-    sha256 = "sha256-DofAOv7sCe7RAJpgz9PEYm+C8RAl0a1KgFm9jToMsEY=";
+    sha256 = "sha256-/jfUftlNL+B4570ajropS7/2fqro380kZzpPwm+A9fA=";
   };
 
   patches = [
-    ./0001-Remove-Install-Unlisted-Engines-function.patch
-    (substituteAll {
-      src = ./fix-paths.patch;
-      inherit ibus onboard libgnomekbd;
+    # This will try to install packages with apt.
+    # https://github.com/elementary/switchboard-plug-keyboard/issues/324
+    ./hide-install-unlisted-engines-button.patch
+
+    (replaceVars ./fix-paths.patch {
+      inherit onboard libgnomekbd;
     })
   ];
 
   nativeBuildInputs = [
+    gettext # msgfmt
     libxml2
     meson
     ninja
@@ -50,12 +54,12 @@ stdenv.mkDerivation rec {
 
   buildInputs = [
     gnome-settings-daemon # media-keys
-    granite
+    granite7
     gsettings-desktop-schemas
-    gtk3
+    gtk4
     ibus
+    libadwaita
     libgee
-    libhandy
     libxklavier
     switchboard
   ];

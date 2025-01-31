@@ -1,24 +1,25 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, makeWrapper
-, clang
-, llvm
-# TODO: switch to latest versions when 2.6 release is out to include
-#   https://github.com/google/honggfuzz/commit/90fdf81006614664ef05e5e3c6f94d91610f11b2
-, libbfd_2_38, libopcodes_2_38
-, libunwind
-, libblocksruntime }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  makeWrapper,
+  clang,
+  llvm,
+  libbfd,
+  libopcodes,
+  libunwind,
+  libblocksruntime,
+}:
 
 stdenv.mkDerivation rec {
   pname = "honggfuzz";
-  version = "2.5";
+  version = "2.6";
 
   src = fetchFromGitHub {
     owner = "google";
     repo = pname;
     rev = version;
-    sha256 = "sha256-TkyUKmiiSAfCnfQhSOUxuce6+dRyMmHy7vFK59jPIxM=";
+    sha256 = "sha256-/ra6g0qjjC8Lo8/n2XEbwnZ95yDHcGhYd5+TTvQ6FAc=";
   };
 
   postPatch = ''
@@ -30,7 +31,15 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ makeWrapper ];
   buildInputs = [ llvm ];
-  propagatedBuildInputs = [ libbfd_2_38 libopcodes_2_38 libunwind libblocksruntime ];
+  propagatedBuildInputs = [
+    libbfd
+    libopcodes
+    libunwind
+    libblocksruntime
+  ];
+
+  # Fortify causes build failures: 'str*' defined both normally and as 'alias' attribute
+  hardeningDisable = [ "fortify" ];
 
   makeFlags = [ "PREFIX=$(out)" ];
 
@@ -43,8 +52,7 @@ stdenv.mkDerivation rec {
   '';
 
   meta = {
-    description =
-      "A security oriented, feedback-driven, evolutionary, easy-to-use fuzzer";
+    description = "A security oriented, feedback-driven, evolutionary, easy-to-use fuzzer";
     longDescription = ''
       Honggfuzz is a security oriented, feedback-driven, evolutionary,
       easy-to-use fuzzer with interesting analysis options. It is
@@ -61,6 +69,9 @@ stdenv.mkDerivation rec {
     homepage = "https://honggfuzz.dev/";
     license = lib.licenses.asl20;
     platforms = lib.platforms.linux;
-    maintainers = with lib.maintainers; [ cpu chivay ];
+    maintainers = with lib.maintainers; [
+      cpu
+      chivay
+    ];
   };
 }

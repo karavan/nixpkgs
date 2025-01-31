@@ -3,20 +3,22 @@
 , jq, xdg-utils, writeText
 
 ## various stuff that can be plugged in
-, ffmpeg_5, xorg, alsa-lib, libpulseaudio, libcanberra-gtk3, libglvnd, libnotify, opensc
-, gnome/*.gnome-shell*/
+, ffmpeg, xorg, alsa-lib, libpulseaudio, libcanberra-gtk3, libglvnd, libnotify, opensc
+, adwaita-icon-theme
 , browserpass, gnome-browser-connector, uget-integrator, plasma5Packages, bukubrow, pipewire
 , tridactyl-native
-, fx_cast_bridge
+, fx-cast-bridge
+, keepassxc
 , udev
 , libkrb5
 , libva
-, mesa # firefox wants gbm for drm+dmabuf
+, libgbm
 , cups
 , pciutils
+, vulkan-loader
 , sndio
 , libjack2
-, speechd
+, speechd-minimal
 }:
 
 ## configurability of the wrapper itself
@@ -33,6 +35,7 @@ let
     , nameSuffix ? ""
     , icon ? applicationName
     , wmClass ? applicationName
+    , nativeMessagingHosts ? []
     , extraNativeMessagingHosts ? []
     , pkcs11Modules ? []
     , useGlvnd ? true
@@ -44,11 +47,12 @@ let
     , extraPrefs ? ""
     , extraPrefsFiles ? []
     # For more information about policies visit
-    # https://github.com/mozilla/policy-templates#enterprisepoliciesenabled
+    # https://mozilla.github.io/policy-templates/
     , extraPolicies ? {}
     , extraPoliciesFiles ? []
-    , libName ? browser.libName or "firefox" # Important for tor package or the like
+    , libName ? browser.libName or applicationName # Important for tor package or the like
     , nixExtensions ? null
+    , hasMozSystemDirPatch ? (lib.hasPrefix "firefox" pname && !lib.hasSuffix "-bin" pname)
     }:
 
     let
@@ -61,20 +65,34 @@ let
       # PCSC-Lite daemon (services.pcscd) also must be enabled for firefox to access smartcards
       smartcardSupport = cfg.smartcardSupport or false;
 
-      nativeMessagingHosts =
-        [ ]
-          ++ lib.optional (cfg.enableBrowserpass or false) (lib.getBin browserpass)
-          ++ lib.optional (cfg.enableBukubrow or false) bukubrow
-          ++ lib.optional (cfg.enableTridactylNative or false) tridactyl-native
-          ++ lib.optional (cfg.enableGnomeExtensions or false) gnome-browser-connector
-          ++ lib.optional (cfg.enableUgetIntegrator or false) uget-integrator
-          ++ lib.optional (cfg.enablePlasmaBrowserIntegration or false) plasma5Packages.plasma-browser-integration
-          ++ lib.optional (cfg.enableFXCastBridge or false) fx_cast_bridge
-          ++ extraNativeMessagingHosts
-        ;
-      libs =   lib.optionals stdenv.isLinux [ udev libva mesa libnotify xorg.libXScrnSaver cups pciutils ]
+      deprecatedNativeMessagingHost = option: pkg:
+        if (cfg.${option} or false)
+          then
+            lib.warn "The cfg.${option} argument for `firefox.override` is deprecated, please add `pkgs.${pkg.pname}` to `nativeMessagingHosts` instead"
+            [pkg]
+          else [];
+
+      allNativeMessagingHosts = builtins.map lib.getBin (
+        nativeMessagingHosts
+          ++ deprecatedNativeMessagingHost "enableBrowserpass" browserpass
+          ++ deprecatedNativeMessagingHost "enableBukubrow" bukubrow
+          ++ deprecatedNativeMessagingHost "enableTridactylNative" tridactyl-native
+          ++ deprecatedNativeMessagingHost "enableGnomeExtensions" gnome-browser-connector
+          ++ deprecatedNativeMessagingHost "enableUgetIntegrator" uget-integrator
+          ++ deprecatedNativeMessagingHost "enablePlasmaBrowserIntegration" plasma5Packages.plasma-browser-integration
+          ++ deprecatedNativeMessagingHost "enableFXCastBridge" fx-cast-bridge
+          ++ deprecatedNativeMessagingHost "enableKeePassXC" keepassxc
+          ++ (if extraNativeMessagingHosts != []
+                then lib.warn "The extraNativeMessagingHosts argument for the Firefox wrapper is deprecated, please use `nativeMessagingHosts`" extraNativeMessagingHosts
+                else [])
+       );
+
+       libs = lib.optionals stdenv.hostPlatform.isLinux (
+            [ udev libva libgbm libnotify xorg.libXScrnSaver cups pciutils vulkan-loader ]
+            ++ lib.optional (cfg.speechSynthesisSupport or true) speechd-minimal
+       )
             ++ lib.optional pipewireSupport pipewire
-            ++ lib.optional ffmpegSupport ffmpeg_5
+            ++ lib.optional ffmpegSupport ffmpeg
             ++ lib.optional gssSupport libkrb5
             ++ lib.optional useGlvnd libglvnd
             ++ lib.optionals (cfg.enableQuakeLive or false)
@@ -84,8 +102,8 @@ let
             ++ lib.optional sndioSupport sndio
             ++ lib.optional jackSupport libjack2
             ++ lib.optional smartcardSupport opensc
-            ++ lib.optional (cfg.speechSynthesisSupport or false) speechd
-            ++ pkcs11Modules;
+            ++ pkcs11Modules
+            ++ gtk_modules;
       gtk_modules = [ libcanberra-gtk3 ];
 
       launcherName = "${applicationName}${nameSuffix}";
@@ -101,18 +119,15 @@ let
 
       nameArray = builtins.map(a: a.name) (lib.optionals usesNixExtensions nixExtensions);
 
-      requiresSigning = browser ? MOZ_REQUIRE_SIGNING
-                     -> toString browser.MOZ_REQUIRE_SIGNING != "";
-
       # Check that every extension has a unqiue .name attribute
       # and an extid attribute
       extensions = if nameArray != (lib.unique nameArray) then
         throw "Firefox addon name needs to be unique"
-      else if requiresSigning && !lib.hasSuffix "esr" browser.name then
-        throw "Nix addons are only supported without signature enforcement (eg. Firefox ESR)"
+      else if browser.requireSigning || !browser.allowAddonSideload then
+        throw "Nix addons are only supported with signature enforcement disabled and addon sideloading enabled (eg. LibreWolf)"
       else builtins.map (a:
         if ! (builtins.hasAttr "extid" a) then
-        throw "nixExtensions has an invalid entry. Missing extid attribute. Please use fetchfirefoxaddon"
+        throw "nixExtensions has an invalid entry. Missing extid attribute. Please use fetchFirefoxAddon"
         else
         a
       ) (lib.optionals usesNixExtensions nixExtensions);
@@ -165,7 +180,8 @@ let
       #                           #
       #############################
 
-    in stdenv.mkDerivation {
+    in stdenv.mkDerivation (finalAttrs: {
+      __structuredAttrs = true;
       inherit pname version;
 
       desktopItem = makeDesktopItem ({
@@ -230,6 +246,62 @@ let
       nativeBuildInputs = [ makeWrapper lndir jq ];
       buildInputs = [ browser.gtk3 ];
 
+      makeWrapperArgs = [
+        "--prefix"
+        "LD_LIBRARY_PATH"
+        ":"
+        "${finalAttrs.libs}"
+
+        "--suffix"
+        "GTK_PATH"
+        ":"
+        "${lib.concatStringsSep ":" finalAttrs.gtk_modules}"
+
+        "--suffix" "PATH"
+        ":"
+        "${placeholder "out"}/bin"
+
+        "--set"
+        "MOZ_APP_LAUNCHER"
+        launcherName
+
+        "--set"
+        "MOZ_LEGACY_PROFILES"
+        "1"
+
+        "--set"
+        "MOZ_ALLOW_DOWNGRADE"
+        "1"
+
+        "--suffix"
+        "XDG_DATA_DIRS"
+        ":"
+        "${adwaita-icon-theme}/share"
+
+        "--set-default"
+        "MOZ_ENABLE_WAYLAND"
+        "1"
+
+      ] ++ lib.optionals (!xdg-utils.meta.broken) [
+        # make xdg-open overrideable at runtime
+        "--suffix"
+        "PATH"
+        ":"
+        "${lib.makeBinPath [ xdg-utils ]}"
+
+      ] ++ lib.optionals hasMozSystemDirPatch [
+        "--set"
+        "MOZ_SYSTEM_DIR"
+        "${placeholder "out"}/lib/mozilla"
+
+      ] ++ lib.optionals (!hasMozSystemDirPatch && allNativeMessagingHosts != [ ]) [
+        "--run"
+        ''mkdir -p ''${MOZ_HOME:-~/.mozilla}/native-messaging-hosts''
+
+      ] ++ lib.optionals (!hasMozSystemDirPatch) (lib.concatMap (ext: [
+        "--run"
+        ''ln -sfLt ''${MOZ_HOME:-~/.mozilla}/native-messaging-hosts ${ext}/lib/mozilla/native-messaging-hosts/*''
+      ]) allNativeMessagingHosts);
 
       buildCommand = ''
         if [ ! -x "${browser}/bin/${applicationName}" ]
@@ -298,21 +370,9 @@ let
           mv "$executablePath" "$oldExe"
         fi
 
-        # make xdg-open overrideable at runtime
-        makeWrapper "$oldExe" \
-          "''${executablePath}${nameSuffix}" \
-            --prefix LD_LIBRARY_PATH ':' "$libs" \
-            --suffix-each GTK_PATH ':' "$gtk_modules" \
-            ${lib.optionalString (!xdg-utils.meta.broken) "--suffix PATH ':' \"${xdg-utils}/bin\""} \
-            --suffix PATH ':' "$out/bin" \
-            --set MOZ_APP_LAUNCHER "${launcherName}" \
-            --set MOZ_SYSTEM_DIR "$out/lib/mozilla" \
-            --set MOZ_LEGACY_PROFILES 1 \
-            --set MOZ_ALLOW_DOWNGRADE 1 \
-            --prefix XDG_DATA_DIRS : "$GSETTINGS_SCHEMAS_PATH" \
-            --suffix XDG_DATA_DIRS : '${gnome.adwaita-icon-theme}/share' \
-            --set-default MOZ_ENABLE_WAYLAND 1 \
-            "''${oldWrapperArgs[@]}"
+        appendToVar makeWrapperArgs --prefix XDG_DATA_DIRS : "$GSETTINGS_SCHEMAS_PATH"
+        concatTo makeWrapperArgs oldWrapperArgs
+        makeWrapper "$oldExe" "''${executablePath}${nameSuffix}" "''${makeWrapperArgs[@]}"
         #############################
         #                           #
         #   END EXTRA PREF CHANGES  #
@@ -334,10 +394,12 @@ let
 
         install -D -t $out/share/applications $desktopItem/share/applications/*
 
+      '' + lib.optionalString hasMozSystemDirPatch ''
         mkdir -p $out/lib/mozilla/native-messaging-hosts
-        for ext in ${toString nativeMessagingHosts}; do
+        for ext in ${toString allNativeMessagingHosts}; do
             ln -sLt $out/lib/mozilla/native-messaging-hosts $ext/lib/mozilla/native-messaging-hosts/*
         done
+      '' + ''
 
         mkdir -p $out/lib/mozilla/pkcs11-modules
         for ext in ${toString pkcs11Modules}; do
@@ -362,7 +424,7 @@ let
 
         extraPoliciesFiles=(${builtins.toString extraPoliciesFiles})
         for extraPoliciesFile in "''${extraPoliciesFiles[@]}"; do
-          jq -s '.[0] + .[1]' "$POL_PATH" $extraPoliciesFile > .tmp.json
+          jq -s '.[0] * .[1]' "$POL_PATH" $extraPoliciesFile > .tmp.json
           mv .tmp.json "$POL_PATH"
         done
 
@@ -402,11 +464,11 @@ let
       passthru = { unwrapped = browser; };
 
       disallowedRequisites = [ stdenv.cc ];
-
       meta = browser.meta // {
         inherit (browser.meta) description;
+        mainProgram = launcherName;
         hydraPlatforms = [];
-        priority = (browser.meta.priority or 0) - 1; # prefer wrapper over the package
+        priority = (browser.meta.priority or lib.meta.defaultPriority) - 1; # prefer wrapper over the package
       };
-    };
+    });
 in lib.makeOverridable wrapper

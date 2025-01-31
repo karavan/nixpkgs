@@ -14,18 +14,21 @@
 , fftw
 , fftwSinglePrec
 , flac
+, fluidsynth
 , glibc
 , glibmm
 , graphviz
 , gtkmm2
 , harvid
+, hidapi
 , itstool
+, kissfft
 , libarchive
 , libjack2
 , liblo
+, libltc
 , libogg
 , libpulseaudio
-, librdf_raptor
 , librdf_rasqal
 , libsamplerate
 , libsigcxx
@@ -43,6 +46,7 @@
 , perl
 , pkg-config
 , python3
+, qm-dsp
 , readline
 , rubberband
 , serd
@@ -54,18 +58,19 @@
 , vamp-plugin-sdk
 , wafHook
 , xjadeo
+, optimize ? true # disable to print Lua DSP script output to stdout
 , videoSupport ? true
 }:
 stdenv.mkDerivation rec {
   pname = "ardour";
-  version = "7.4";
+  version = "8.10";
 
   # We can't use `fetchFromGitea` here, as attempting to fetch release archives from git.ardour.org
   # result in an empty archive. See https://tracker.ardour.org/view.php?id=7328 for more info.
   src = fetchgit {
     url = "git://git.ardour.org/ardour/ardour.git";
     rev = version;
-    hash = "sha256-CUGhJi3ji0F6v41Y08sQvo7oKITOJ96ojdJL+FyCxmw=";
+    hash = "sha256-y4eNo0ukRL6v0T1XvJ46sYnsiVSdL527punnkmf/TIU=";
   };
 
   bundledContent = fetchzip {
@@ -115,15 +120,18 @@ stdenv.mkDerivation rec {
     fftw
     fftwSinglePrec
     flac
+    fluidsynth
     glibmm
     gtkmm2
+    hidapi
     itstool
+    kissfft
     libarchive
     libjack2
     liblo
+    libltc
     libogg
     libpulseaudio
-    librdf_raptor
     librdf_rasqal
     libsamplerate
     libsigcxx
@@ -139,6 +147,7 @@ stdenv.mkDerivation rec {
     pango
     perl
     python3
+    qm-dsp
     readline
     rubberband
     serd
@@ -151,17 +160,20 @@ stdenv.mkDerivation rec {
   ] ++ lib.optionals videoSupport [ harvid xjadeo ];
 
   wafConfigureFlags = [
-    "--cxx11"
+    "--cxx17"
     "--docs"
     "--freedesktop"
     "--no-phone-home"
-    "--optimize"
     "--ptformat"
     "--run-tests"
     "--test"
-  ];
-  # removed because it fixes https://tracker.ardour.org/view.php?id=8161 and https://tracker.ardour.org/view.php?id=8437
-  # "--use-external-libs"
+    # since we don't have https://github.com/agfline/LibAAF yet,
+    # we need to use some of ardours internal libs, see:
+    # https://discourse.ardour.org/t/ardour-8-2-released/109615/6
+    # and
+    # https://discourse.ardour.org/t/ardour-8-2-released/109615/8
+    # "--use-external-libs"
+  ] ++ lib.optional optimize "--optimize";
 
   postInstall = ''
     # wscript does not install these for some reason
@@ -198,8 +210,8 @@ stdenv.mkDerivation rec {
     '';
     homepage = "https://ardour.org/";
     license = licenses.gpl2Plus;
-    mainProgram = "ardour7";
+    mainProgram = "ardour8";
     platforms = platforms.linux;
-    maintainers = with maintainers; [ goibhniu magnetophon mitchmindtree ];
+    maintainers = with maintainers; [ magnetophon mitchmindtree ];
   };
 }

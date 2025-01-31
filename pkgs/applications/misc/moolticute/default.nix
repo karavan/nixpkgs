@@ -1,27 +1,41 @@
-{ lib, mkDerivation, fetchFromGitHub
-, libusb1
-, pkg-config
-, qmake
-, qtbase
-, qttools
-, qtwebsockets
+{
+  lib,
+  mkDerivation,
+  fetchFromGitHub,
+  libusb1,
+  pkg-config,
+  qmake,
+  qtbase,
+  qttools,
+  qtwebsockets,
 }:
 
 mkDerivation rec {
   pname = "moolticute";
-  version = "1.01.0";
+  version = "1.03.0";
 
   src = fetchFromGitHub {
     owner = "mooltipass";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-6vqYyAJ9p0ey49kc2Tp/HZVv0mePARX2dcmcIG4bcNQ=";
+    sha256 = "sha256-S2Pnueo3opP1k6XBBHGAyRJpkNuI1Hotz7ypXa/96eQ=";
   };
 
-  outputs = [ "out" "udev" ];
+  outputs = [
+    "out"
+    "udev"
+  ];
 
-  nativeBuildInputs = [ pkg-config qmake qttools ];
-  buildInputs = [ libusb1 qtbase qtwebsockets ];
+  nativeBuildInputs = [
+    pkg-config
+    qmake
+    qttools
+  ];
+  buildInputs = [
+    libusb1
+    qtbase
+    qtwebsockets
+  ];
 
   preConfigure = "mkdir -p build && cd build";
   qmakeFlags = [ "../Moolticute.pro" ];
@@ -30,7 +44,7 @@ mkDerivation rec {
     mkdir -p $udev/lib/udev/rules.d
     sed -n '/^UDEV_RULE=="\$(cat <<-EOF$/,/^EOF$/p' ../data/moolticute.sh |
         sed '1d;$d' > $udev/lib/udev/rules.d/50-mooltipass.rules
- '';
+  '';
 
   meta = with lib; {
     description = "GUI app and daemon to work with Mooltipass device via USB";
@@ -40,7 +54,10 @@ mkDerivation rec {
     '';
     homepage = "https://github.com/mooltipass/moolticute";
     license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ kirikaza hughobrien ];
+    maintainers = with maintainers; [
+      kirikaza
+      hughobrien
+    ];
     platforms = platforms.linux;
   };
 }

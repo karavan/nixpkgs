@@ -1,34 +1,39 @@
-{ lib
-, aenum
-, aiodns
-, aiohttp
-, buildPythonPackage
-, faust-cchardet
-, fetchFromGitHub
-, pyopenssl
-, pythonOlder
-, pytz
-, related
-, requests
-, uonet-request-signer-hebe
-, yarl
+{
+  lib,
+  aenum,
+  aiodns,
+  aiohttp,
+  buildPythonPackage,
+  setuptools,
+  faust-cchardet,
+  fetchFromGitHub,
+  pyopenssl,
+  pythonOlder,
+  pytz,
+  related,
+  uonet-request-signer-hebe,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "vulcan-api";
-  version = "2.3.0";
-  format = "setuptools";
+  version = "2.4.2";
+  pyproject = true;
 
   disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "kapi2289";
     repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-5Tj611p4wYn7GjoCtCTRhUZkKyAJglHcci76ciVFWik=";
+    tag = "v${version}";
+    hash = "sha256-oWtyqFacWkKhv4QvbZCuq3KHlM/o7SfENg90O/ygXUw=";
   };
 
-  propagatedBuildInputs = [
+  pythonRemoveDeps = [ "related-without-future" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     aenum
     aiodns
     aiohttp
@@ -36,7 +41,6 @@ buildPythonPackage rec {
     pyopenssl
     pytz
     related
-    requests
     uonet-request-signer-hebe
     yarl
   ];
@@ -44,9 +48,7 @@ buildPythonPackage rec {
   # Project has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "vulcan"
-  ];
+  pythonImportsCheck = [ "vulcan" ];
 
   meta = with lib; {
     description = "Python library for UONET+ e-register API";

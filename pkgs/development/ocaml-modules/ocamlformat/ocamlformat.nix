@@ -1,26 +1,50 @@
-{ lib, callPackage, buildDunePackage, re, ocamlformat-lib, menhir
-, version ? "0.26.0" }:
+# Version can be selected with the 'version' argument, see generic.nix.
+{
+  lib,
+  callPackage,
+  buildDunePackage,
+  ocaml,
+  re,
+  ocamlformat-lib,
+  menhir,
+  ...
+}@args:
 
-let inherit (callPackage ./generic.nix { inherit version; }) src library_deps;
+let
+  inherit (callPackage ./generic.nix args) src version library_deps;
+in
 
-in buildDunePackage {
-  pname = "ocamlformat";
-  inherit src version;
+lib.throwIf
+  (
+    lib.versionAtLeast ocaml.version "5.0" && !lib.versionAtLeast version "0.23"
+    || lib.versionAtLeast ocaml.version "5.2" && !lib.versionAtLeast version "0.26.2"
+  )
+  "ocamlformat ${version} is not available for OCaml ${ocaml.version}"
 
-  minimalOCamlVersion = "4.08";
-  duneVersion = "3";
+  buildDunePackage
+  {
+    pname = "ocamlformat";
+    inherit src version;
 
-  nativeBuildInputs =
-    if lib.versionAtLeast version "0.25.1" then [ ] else [ menhir ];
+    minimalOCamlVersion = "4.08";
 
-  buildInputs = [ re ] ++ library_deps
-    ++ lib.optionals (lib.versionAtLeast version "0.25.1")
-    [ (ocamlformat-lib.override { inherit version; }) ];
+    nativeBuildInputs = if lib.versionAtLeast version "0.25.1" then [ ] else [ menhir ];
 
-  meta = {
-    homepage = "https://github.com/ocaml-ppx/ocamlformat";
-    description = "Auto-formatter for OCaml code";
-    maintainers = with lib.maintainers; [ Zimmi48 marsam Julow ];
-    license = lib.licenses.mit;
-  };
-}
+    buildInputs =
+      [ re ]
+      ++ library_deps
+      ++ lib.optionals (lib.versionAtLeast version "0.25.1") [
+        (ocamlformat-lib.override { inherit version; })
+      ];
+
+    meta = {
+      homepage = "https://github.com/ocaml-ppx/ocamlformat";
+      description = "Auto-formatter for OCaml code";
+      maintainers = with lib.maintainers; [
+        Zimmi48
+        Julow
+      ];
+      license = lib.licenses.mit;
+      mainProgram = "ocamlformat";
+    };
+  }

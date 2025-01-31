@@ -1,18 +1,24 @@
-{ lib
-, buildPythonPackage
-, autodock-vina
-, boost
-, swig
-, setuptools
-, numpy
+{
+  lib,
+  buildPythonPackage,
+  autodock-vina,
+  boost,
+  swig,
+  setuptools,
+  numpy,
 }:
 
 buildPythonPackage {
-  inherit (autodock-vina) pname version src meta;
+  inherit (autodock-vina)
+    pname
+    version
+    src
+    meta
+    ;
 
   format = "pyproject";
 
-  sourceRoot = "source/build/python";
+  sourceRoot = "${autodock-vina.src.name}/build/python";
 
   postPatch = ''
     # wildcards are not allowed

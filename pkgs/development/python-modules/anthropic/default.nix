@@ -1,58 +1,90 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, anyio
-, distro
-, httpx
-, pydantic
-, pytest-asyncio
-, respx
-, tokenizers
-, typing-extensions
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  anyio,
+  buildPythonPackage,
+  dirty-equals,
+  distro,
+  fetchFromGitHub,
+  google-auth,
+  hatch-fancy-pypi-readme,
+  hatchling,
+  httpx,
+  jiter,
+  nest-asyncio,
+  pydantic,
+  pytest-asyncio,
+  pytestCheckHook,
+  pythonAtLeast,
+  pythonOlder,
+  respx,
+  sniffio,
+  tokenizers,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "anthropic";
-  version = "0.3.6";
-  format = "pyproject";
+  version = "0.42.0";
+  pyproject = true;
 
   disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "anthropics";
     repo = "anthropic-sdk-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-dfMlM7IRP1PG7Ynr+MR4OPeKnHBbhhWKSug7UQ4/4rI=";
+    tag = "v${version}";
+    hash = "sha256-7cRXKXiyq3ty21klkitjjnm9rzBRmAXGYvvVxTNWeZ4=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
+  build-system = [
+    hatchling
+    hatch-fancy-pypi-readme
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     anyio
     distro
     httpx
+    jiter
+    sniffio
     pydantic
     tokenizers
     typing-extensions
   ];
 
+  optional-dependencies = {
+    vertex = [ google-auth ];
+  };
+
   nativeCheckInputs = [
+    dirty-equals
     pytest-asyncio
+    nest-asyncio
     pytestCheckHook
     respx
   ];
 
-  disabledTests = [
-    "api_resources"
+  pythonImportsCheck = [ "anthropic" ];
+
+  disabledTests =
+    [
+      # Test require network access
+      "test_copy_build_request"
+    ]
+    ++ lib.optionals (pythonAtLeast "3.13") [
+      # Fails on RuntimeWarning: coroutine method 'aclose' of 'AsyncStream._iter_events' was never awaited
+      "test_multi_byte_character_multiple_chunks[async]"
+    ];
+
+  disabledTestPaths = [
+    # Test require network access
+    "tests/api_resources"
+    "tests/lib/test_bedrock.py"
   ];
 
-  pythonImportsCheck = [
-    "anthropic"
+  pytestFlagsArray = [
+    "-W"
+    "ignore::DeprecationWarning"
   ];
 
   meta = with lib; {
@@ -61,6 +93,5 @@ buildPythonPackage rec {
     changelog = "https://github.com/anthropics/anthropic-sdk-python/releases/tag/v${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ natsukium ];
-    broken = lib.versionAtLeast pydantic.version "2";
   };
 }

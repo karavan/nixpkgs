@@ -1,9 +1,10 @@
-{ lib
-, buildPythonApplication
-, fetchFromGitHub
-, bencoder
-, pyyaml
-, requests
+{
+  lib,
+  buildPythonApplication,
+  fetchFromGitHub,
+  bencoder,
+  pyyaml,
+  requests,
 }:
 buildPythonApplication rec {
   pname = "gazelle-origin";
@@ -33,5 +34,6 @@ buildPythonApplication rec {
     # TODO license is unspecified in the upstream, as well as the fork
     license = licenses.unfree;
     maintainers = with maintainers; [ somasis ];
+    mainProgram = "gazelle-origin";
   };
 }

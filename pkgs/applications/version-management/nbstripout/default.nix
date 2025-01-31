@@ -1,9 +1,10 @@
-{ lib
-, python3
-, fetchPypi
-, coreutils
-, git
-, mercurial
+{
+  lib,
+  python3,
+  fetchPypi,
+  coreutils,
+  git,
+  mercurial,
 }:
 
 python3.pkgs.buildPythonApplication rec {
@@ -22,18 +23,19 @@ python3.pkgs.buildPythonApplication rec {
   '';
 
   propagatedBuildInputs = with python3.pkgs; [
-    ipython
     nbformat
   ];
 
-  nativeCheckInputs = [
-    coreutils
-    git
-    mercurial
-  ] ++ (with python3.pkgs; [
-    pytest-cram
-    pytestCheckHook
-  ]);
+  nativeCheckInputs =
+    [
+      coreutils
+      git
+      mercurial
+    ]
+    ++ (with python3.pkgs; [
+      pytest-cram
+      pytestCheckHook
+    ]);
 
   preCheck = ''
     export HOME=$(mktemp -d)
@@ -46,5 +48,6 @@ python3.pkgs.buildPythonApplication rec {
     homepage = "https://github.com/kynan/nbstripout";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ jluttine ];
+    mainProgram = "nbstripout";
   };
 }

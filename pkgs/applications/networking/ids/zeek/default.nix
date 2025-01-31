@@ -1,43 +1,45 @@
-{ lib
-, stdenv
-, callPackage
-, fetchurl
-, cmake
-, flex
-, bison
-, spicy-parser-generator
-, openssl
-, libkqueue
-, libpcap
-, zlib
-, file
-, curl
-, libmaxminddb
-, gperftools
-, python3
-, swig
-, gettext
-, coreutils
-, ncurses
+{
+  lib,
+  stdenv,
+  callPackage,
+  fetchurl,
+  cmake,
+  flex,
+  bison,
+  openssl,
+  libkqueue,
+  libpcap,
+  zlib,
+  file,
+  curl,
+  libmaxminddb,
+  gperftools,
+  python3,
+  swig,
+  gettext,
+  coreutils,
+  ncurses,
 }:
 
 let
   broker = callPackage ./broker { };
+  python = python3.withPackages (p: [
+    p.gitpython
+    p.semantic-version
+  ]);
 in
 stdenv.mkDerivation rec {
   pname = "zeek";
-  version = "5.2.2";
+  version = "6.2.1";
 
   src = fetchurl {
     url = "https://download.zeek.org/zeek-${version}.tar.gz";
-    sha256 = "sha256-4MJBV8yWpy5LvkyyipOZdDjU6FV7F8INc/zWddRGFcY=";
+    hash = "sha256-ZOOlK9mfZVrfxvgFREgqcRcSs18EMpADD8Y4Ev391Bw=";
   };
 
   strictDeps = true;
 
   patches = [
-    ./avoid-broken-tests.patch
-    ./debug-runtime-undef-fortify-source.patch
     ./fix-installation.patch
   ];
 
@@ -46,45 +48,48 @@ stdenv.mkDerivation rec {
     cmake
     file
     flex
-    python3
+    python
+    swig
   ];
 
-  buildInputs = [
-    broker
-    spicy-parser-generator
-    curl
-    gperftools
-    libmaxminddb
-    libpcap
-    ncurses
-    openssl
-    swig
-    zlib
-  ] ++ lib.optionals stdenv.isLinux [
-    libkqueue
-  ] ++ lib.optionals stdenv.isDarwin [
-    gettext
-  ];
+  buildInputs =
+    [
+      broker
+      curl
+      gperftools
+      libmaxminddb
+      libpcap
+      ncurses
+      openssl
+      zlib
+      python
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isLinux [
+      libkqueue
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      gettext
+    ];
 
   postPatch = ''
-    patchShebangs ./auxil/spicy/spicy/scripts
-
-    substituteInPlace auxil/spicy/CMakeLists.txt --replace "hilti-toolchain-tests" ""
-    substituteInPlace auxil/spicy/spicy/hilti/CMakeLists.txt --replace "hilti-toolchain-tests" ""
+    patchShebangs ./ci/collect-repo-info.py
+    patchShebangs ./auxil/spicy/scripts
   '';
 
-  cmakeFlags = [
-    "-DBroker_ROOT=${broker}"
-    "-DSPICY_ROOT_DIR=${spicy-parser-generator}"
-    "-DENABLE_PERFTOOLS=true"
-    "-DINSTALL_AUX_TOOLS=true"
-    "-DZEEK_ETC_INSTALL_DIR=/etc/zeek"
-    "-DZEEK_LOG_DIR=/var/log/zeek"
-    "-DZEEK_STATE_DIR=/var/lib/zeek"
-    "-DZEEK_SPOOL_DIR=/var/spool/zeek"
-  ] ++ lib.optionals stdenv.isLinux [
-    "-DLIBKQUEUE_ROOT_DIR=${libkqueue}"
-  ];
+  cmakeFlags =
+    [
+      "-DBroker_ROOT=${broker}"
+      "-DENABLE_PERFTOOLS=true"
+      "-DINSTALL_AUX_TOOLS=true"
+      "-DZEEK_ETC_INSTALL_DIR=/etc/zeek"
+      "-DZEEK_LOG_DIR=/var/log/zeek"
+      "-DZEEK_STATE_DIR=/var/lib/zeek"
+      "-DZEEK_SPOOL_DIR=/var/spool/zeek"
+      "-DDISABLE_JAVASCRIPT=ON"
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isLinux [
+      "-DLIBKQUEUE_ROOT_DIR=${libkqueue}"
+    ];
 
   postInstall = ''
     for file in $out/share/zeek/base/frameworks/notice/actions/pp-alarms.zeek $out/share/zeek/base/frameworks/notice/main.zeek; do
@@ -107,7 +112,10 @@ stdenv.mkDerivation rec {
     homepage = "https://www.zeek.org";
     changelog = "https://github.com/zeek/zeek/blob/v${version}/CHANGES";
     license = licenses.bsd3;
-    maintainers = with maintainers; [ pSub marsam tobim ];
+    maintainers = with maintainers; [
+      pSub
+      tobim
+    ];
     platforms = platforms.unix;
   };
 }

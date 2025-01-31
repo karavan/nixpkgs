@@ -1,4 +1,9 @@
-{ lib, ruby, bundlerApp, bundlerUpdateScript }:
+{
+  lib,
+  ruby,
+  bundlerApp,
+  bundlerUpdateScript,
+}:
 
 bundlerApp {
   pname = "inspec";
@@ -6,7 +11,7 @@ bundlerApp {
 
   inherit ruby;
 
-  exes = ["inspec"];
+  exes = [ "inspec" ];
 
   passthru.updateScript = bundlerUpdateScript "inspec";
 
@@ -15,5 +20,6 @@ bundlerApp {
     homepage = "https://inspec.io/";
     license = licenses.asl20;
     maintainers = with maintainers; [ dylanmtaylor ];
+    mainProgram = "inspec";
   };
 }

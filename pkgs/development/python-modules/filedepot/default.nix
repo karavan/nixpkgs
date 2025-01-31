@@ -1,42 +1,46 @@
-{ lib
-, anyascii
-, buildPythonPackage
-, fetchFromGitHub
-, flaky
-, google-cloud-storage
-, mock
-, paste
-, pillow
-, pymongo
-, pytestCheckHook
-, pythonOlder
-, requests
-, sqlalchemy
+{
+  lib,
+  anyascii,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flaky,
+  google-cloud-storage,
+  legacy-cgi,
+  mock,
+  pillow,
+  pymongo,
+  pytestCheckHook,
+  pythonAtLeast,
+  pythonOlder,
+  requests,
+  setuptools,
+  sqlalchemy,
 }:
 
 buildPythonPackage rec {
   pname = "filedepot";
-  version = "0.10.0";
-  format = "setuptools";
+  version = "0.11.0";
+  pyproject = true;
 
   disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "amol-";
     repo = "depot";
-    rev = "refs/tags/${version}";
-    hash = "sha256-vPceky5cvmy3MooWz7dRdy68VoAHN7i3a7egBs4dPE8=";
+    tag = version;
+    hash = "sha256-693H/u+Wg2G9sdoUkC6DQo9WkmIlKnh8NKv3ufK/eyQ=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     anyascii
     google-cloud-storage
-  ];
+  ] ++ lib.optionals (pythonAtLeast "3.13") [ legacy-cgi ];
 
   nativeCheckInputs = [
     flaky
     mock
-    paste
     pillow
     pymongo
     pytestCheckHook
@@ -45,6 +49,8 @@ buildPythonPackage rec {
   ];
 
   disabledTestPaths = [
+    # ModuleNotFoundError: No module named 'depot._pillow_compat'
+    "tests/test_fields_sqlalchemy.py"
     # The examples have tests
     "examples"
     # Missing dependencies (TurboGears2 and ming)
@@ -52,9 +58,9 @@ buildPythonPackage rec {
     "tests/test_wsgi_middleware.py"
   ];
 
-  pythonImportsCheck = [
-    "depot"
-  ];
+  disabledTests = lib.optionals (pythonAtLeast "3.13") [ "test_notexisting" ];
+
+  pythonImportsCheck = [ "depot" ];
 
   meta = with lib; {
     description = "Toolkit for storing files and attachments in web applications";

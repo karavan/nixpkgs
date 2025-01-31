@@ -1,33 +1,36 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, pkg-config
-, meson
-, ninja
-, python3
-, vala
-, gtk3
-, libxml2
-, libhandy
-, webkitgtk_4_1
-, folks
-, glib-networking
-, granite
-, evolution-data-server
-, wrapGAppsHook
-, libgee
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  pkg-config,
+  meson,
+  ninja,
+  vala,
+  gtk3,
+  libxml2,
+  libhandy,
+  libportal-gtk3,
+  webkitgtk_4_1,
+  elementary-gtk-theme,
+  elementary-icon-theme,
+  folks,
+  glib-networking,
+  granite,
+  evolution-data-server,
+  wrapGAppsHook3,
+  libgee,
 }:
 
 stdenv.mkDerivation rec {
   pname = "elementary-mail";
-  version = "7.1.0";
+  version = "8.0.0";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "mail";
     rev = version;
-    sha256 = "sha256-dvDlvn8KvFmiP/NClRtHNEs5gPTUjlzgTYmgIaCfoLw=";
+    sha256 = "sha256-6T/OTiuDVAPBqp8BPawf/MVEuWTPrLa3/N1Blvt/7Q8=";
   };
 
   nativeBuildInputs = [
@@ -35,12 +38,12 @@ stdenv.mkDerivation rec {
     meson
     ninja
     pkg-config
-    python3
     vala
-    wrapGAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [
+    elementary-icon-theme
     evolution-data-server
     folks
     glib-networking
@@ -48,12 +51,17 @@ stdenv.mkDerivation rec {
     gtk3
     libgee
     libhandy
+    libportal-gtk3
     webkitgtk_4_1
   ];
 
-  postPatch = ''
-    chmod +x meson/post_install.py
-    patchShebangs meson/post_install.py
+  preFixup = ''
+    gappsWrapperArgs+=(
+      # The GTK theme is hardcoded.
+      --prefix XDG_DATA_DIRS : "${elementary-gtk-theme}/share"
+      # The icon theme is hardcoded.
+      --prefix XDG_DATA_DIRS : "$XDG_ICON_DIRS"
+    )
   '';
 
   passthru = {

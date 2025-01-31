@@ -1,8 +1,5 @@
-if [ -e .attrs.sh ]; then source .attrs.sh; fi
 # Glibc cannot have itself in its RPATH.
 export NIX_NO_SELF_RPATH=1
-
-source $stdenv/setup
 
 postConfigure() {
     # Hack: get rid of the `-static' flag set by the bootstrap stdenv.

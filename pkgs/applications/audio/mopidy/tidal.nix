@@ -1,7 +1,8 @@
-{ lib
-, python3Packages
-, fetchPypi
-, mopidy
+{
+  lib,
+  python3Packages,
+  fetchPypi,
+  mopidy,
 }:
 
 python3Packages.buildPythonApplication rec {
@@ -29,8 +30,6 @@ python3Packages.buildPythonApplication rec {
     description = "Mopidy extension for playing music from Tidal";
     homepage = "https://github.com/tehkillerbee/mopidy-tidal";
     license = licenses.mit;
-    maintainers = [ maintainers.rodrgz ];
+    maintainers = [ ];
   };
 }
-
-

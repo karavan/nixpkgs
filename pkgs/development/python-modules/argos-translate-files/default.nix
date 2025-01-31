@@ -1,19 +1,20 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, lxml
-, translatehtml
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  lxml,
+  translatehtml,
 }:
 
 buildPythonPackage rec {
   pname = "argos-translate-files";
-  version = "1.1.3";
+  version = "1.2.0";
 
   format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "c6931ea8fbabdc24903ceaabfe848be0fa4a0477d00451a8dfbc1525b623f0ba";
+    hash = "sha256-vIwZ2jdrBXtz6gG+Zfgqq6HVfdzmQf7nLqCDaQZT4js=";
   };
 
   propagatedBuildInputs = [

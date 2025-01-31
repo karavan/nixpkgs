@@ -1,39 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, poetry-core
-, aw-core
-, requests
-, persist-queue
-, click
-, tabulate
-, typing-extensions
-, pytestCheckHook
-, gitUpdater
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  poetry-core,
+  aw-core,
+  requests,
+  persist-queue,
+  click,
+  tabulate,
+  typing-extensions,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "aw-client";
-  version = "0.5.12";
-
-  format = "pyproject";
-
-  # pypi distribution doesn't include tests, so build from source instead
-  src = fetchFromGitHub {
-    owner = "ActivityWatch";
-    repo = "aw-client";
-    rev = "v${version}";
-    sha256 = "sha256-Aketk+itfd9gs3s+FDfzmGNWd7tKJQqNn1XsH2VTBD8=";
-  };
+  version = "0.5.15";
+  pyproject = true;
 
   disabled = pythonOlder "3.8";
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  src = fetchFromGitHub {
+    owner = "ActivityWatch";
+    repo = "aw-client";
+    tag = "v${version}";
+    hash = "sha256-AS29DIfEQ6/vh8idcMMQoGmiRM8MMf3eVQzvNPsXgpA=";
+  };
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  dependencies = [
     aw-core
     requests
     persist-queue
@@ -42,9 +38,7 @@ buildPythonPackage rec {
     typing-extensions
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   # Only run this test, the others are integration tests that require
   # an instance of aw-server running in order to function.
@@ -57,14 +51,12 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "aw_client" ];
 
-  passthru.updateScript = gitUpdater {
-    rev-prefix = "v";
-  };
-
   meta = with lib; {
     description = "Client library for ActivityWatch";
     homepage = "https://github.com/ActivityWatch/aw-client";
-    maintainers = with maintainers; [ huantian ];
+    changelog = "https://github.com/ActivityWatch/aw-client/releases/tag/v${version}";
     license = licenses.mpl20;
+    maintainers = with maintainers; [ huantian ];
+    mainProgram = "aw-client";
   };
 }

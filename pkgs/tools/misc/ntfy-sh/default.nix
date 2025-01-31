@@ -1,25 +1,32 @@
-{ lib, pkgs, stdenv, buildGoModule, fetchFromGitHub, buildNpmPackage
-, nixosTests, debianutils, mkdocs, python3, python3Packages
-, pkg-config, pixman, cairo, pango }:
-
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  buildNpmPackage,
+  nixosTests,
+  debianutils,
+  mkdocs,
+  python3,
+  python3Packages,
+}:
 
 buildGoModule rec {
   pname = "ntfy-sh";
-  version = "2.6.2";
+  version = "2.11.0";
 
   src = fetchFromGitHub {
     owner = "binwiederhier";
     repo = "ntfy";
     rev = "v${version}";
-    hash = "sha256-VX5QXJqHvYE8n/TcSBIg8vuLx2OCe6rM87G1PXBiKRI=";
+    hash = "sha256-lSj4LfS4nBC1xtTE/ee2Nhx9TmlU+138miwC0nEfVRY=";
   };
 
-  vendorHash = "sha256-KcA35MVtF/bHtdiMqofs9gSnjl6oYedgqpKZtnFce20=";
+  vendorHash = "sha256-V8LgbprUsr+8Ub4xeTPrE4Bp9qOP/R35/qPj0Udgod0=";
 
   ui = buildNpmPackage {
     inherit src version;
     pname = "ntfy-sh-ui";
-    npmDepsHash = "sha256-JvoTssXiBnl/H4odFqRoGtQz2pGwQL4BGxX8Vp/PBwY=";
+    npmDepsHash = "sha256-PCkRULHfC3ktShO+3wIQFLG24l5LBSB1niWcIrCT9Bo=";
 
     prePatch = ''
       cd web/
@@ -35,15 +42,18 @@ buildGoModule rec {
 
   doCheck = false;
 
-  ldflags = [ "-s" "-w" "-X main.version=${version}" ];
+  ldflags = [
+    "-s"
+    "-w"
+    "-X main.version=${version}"
+  ];
 
   nativeBuildInputs = [
     debianutils
     mkdocs
     python3
     python3Packages.mkdocs-material
-    python3Packages.mkdocs-minify
-    python3Packages.mkdocs-simple-hooks
+    python3Packages.mkdocs-minify-plugin
   ];
 
   postPatch = ''
@@ -64,6 +74,9 @@ buildGoModule rec {
     description = "Send push notifications to your phone or desktop via PUT/POST";
     homepage = "https://ntfy.sh";
     license = licenses.asl20;
-    maintainers = with maintainers; [ arjan-s fpletz ];
+    maintainers = with maintainers; [
+      arjan-s
+      fpletz
+    ];
   };
 }

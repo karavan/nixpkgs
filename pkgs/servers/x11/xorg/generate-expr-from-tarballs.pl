@@ -18,6 +18,7 @@ my %pkgVersions;
 my %pkgRequires;
 my %pkgNativeRequires;
 
+my %pcProvides;
 my %pcMap;
 
 my %extraAttrs;
@@ -33,7 +34,7 @@ $pcMap{"uuid"} = "libuuid";
 $pcMap{"libudev"} = "udev";
 $pcMap{"gl"} = "libGL";
 $pcMap{"GL"} = "libGL";
-$pcMap{"gbm"} = "mesa";
+$pcMap{"gbm"} = "libgbm";
 $pcMap{"hwdata"} = "hwdata";
 $pcMap{"\$PIXMAN"} = "pixman";
 $pcMap{"\$RENDERPROTO"} = "xorgproto";
@@ -112,6 +113,7 @@ while (<>) {
         my $pc = $pcFile;
         $pc =~ s/.*\///;
         $pc =~ s/.pc.in//;
+        push @{$pcProvides{$pkg}}, $pc;
         print "PROVIDES $pc\n";
         die "collision with $pcMap{$pc}" if defined $pcMap{$pc};
         $pcMap{$pc} = $pkg;
@@ -196,12 +198,6 @@ while (<>) {
         push @{$extraAttrs{$pkg}}, "postPatch = ''substituteInPlace configure --replace 'MAPFILES_PATH=`pkg-config' 'MAPFILES_PATH=`\$PKG_CONFIG' '';";
     }
 
-    # libpciaccess requires pci.ids{,.gz} at runtime
-    if ($pkg eq "libpciaccess") {
-        push @requires, "hwdata";
-        push @{$extraAttrs{$pkg}}, "configureFlags = [ \"--with-pciids-path=\${hwdata}/share/hwdata\" ];";
-    }
-
     if (@@ = glob("$tmpDir/*/app-defaults/")) {
         push @nativeRequires, "wrapWithXFileSearchPathHook";
     }
@@ -262,11 +258,16 @@ open OUT, ">default.nix";
 print OUT "";
 print OUT <<EOF;
 # THIS IS A GENERATED FILE.  DO NOT EDIT!
-{ lib, pixman }:
+{
+  lib,
+  pixman,
+  luit,
+}:
 
 self: with self; {
 
   inherit pixman;
+  inherit luit;
 
 EOF
 
@@ -328,9 +329,14 @@ foreach my $pkg (sort (keys %pkgURLs)) {
       $extraAttrsStr = join "", map { "\n    " . $_ } @{$extraAttrs{$pkg}};
     }
 
+    my $pcProvidesStr = "";
+    if (defined $pcProvides{$pkg}) {
+      $pcProvidesStr = join "", map { "\"" . $_ . "\" " } (sort @{$pcProvides{$pkg}});
+    }
+
     print OUT <<EOF
   # THIS IS A GENERATED FILE.  DO NOT EDIT!
-  $pkg = callPackage ({ $argumentsStr }: stdenv.mkDerivation {
+  $pkg = callPackage ({ $argumentsStr, testers }: stdenv.mkDerivation (finalAttrs: {
     pname = "$pkgNames{$pkg}";
     version = "$pkgVersions{$pkg}";
     builder = ./builder.sh;
@@ -342,8 +348,12 @@ foreach my $pkg (sort (keys %pkgURLs)) {
     strictDeps = true;
     nativeBuildInputs = [ pkg-config $nativeBuildInputsStr];
     buildInputs = [ $buildInputsStr];$extraAttrsStr
-    meta.platforms = lib.platforms.unix;
-  }) {};
+    passthru.tests.pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
+    meta = {
+      pkgConfigModules = [ $pcProvidesStr];
+      platforms = lib.platforms.unix;
+    };
+  })) {};
 
 EOF
 }

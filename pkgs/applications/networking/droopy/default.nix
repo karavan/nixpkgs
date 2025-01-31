@@ -1,4 +1,10 @@
-{ stdenv, lib, fetchFromGitHub, wrapPython, fetchpatch }:
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  wrapPython,
+  fetchpatch,
+}:
 
 stdenv.mkDerivation {
   pname = "droopy";
@@ -35,6 +41,7 @@ stdenv.mkDerivation {
     homepage = "http://stackp.online.fr/droopy";
     license = licenses.bsd3;
     maintainers = [ maintainers.Profpatsch ];
+    mainProgram = "droopy";
   };
 
 }

@@ -1,48 +1,62 @@
-{ lib
-, buildPythonPackage
-, cairocffi
-, cython
-, fetchPypi
-, igraph
-, leidenalg
-, pandas
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, scipy
-, setuptools
-, spacy
-, en_core_web_sm
-, toolz
-, tqdm
-, wasabi
+{
+  lib,
+  buildPythonPackage,
+  cairocffi,
+  cython,
+  en_core_web_sm,
+  fetchFromGitHub,
+  igraph,
+  leidenalg,
+  pandas,
+  poetry-core,
+  pyarrow,
+  pytestCheckHook,
+  pythonOlder,
+  scipy,
+  setuptools,
+  spacy-lookups-data,
+  spacy,
+  toolz,
+  tqdm,
+  wasabi,
 }:
 
 buildPythonPackage rec {
   pname = "textnets";
-  version = "0.8.8";
-  format = "pyproject";
+  version = "0.9.5";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  disabled = pythonOlder "3.9";
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-rjXEiaPYctrONIZz1Dd5OSDw5z8D2FPXi5TneKizFUQ=";
+  src = fetchFromGitHub {
+    owner = "jboynyc";
+    repo = "textnets";
+    tag = "v${version}";
+    hash = "sha256-MdKPxIshSx6U2EFGDTUS4EhoByyuVf0HKqvm9cS2KNY=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cython
     poetry-core
     setuptools
   ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [
+    "igraph"
+    "leidenalg"
+    "pyarrow"
+    "toolz"
+  ];
+
+  dependencies = [
     cairocffi
     igraph
     leidenalg
     pandas
+    pyarrow
     scipy
     spacy
+    spacy-lookups-data
     toolz
     tqdm
     wasabi
@@ -53,8 +67,16 @@ buildPythonPackage rec {
     en_core_web_sm
   ];
 
-  pythonImportsCheck = [
-    "textnets"
+  pythonImportsCheck = [ "textnets" ];
+
+  # Enables the package to find the cythonized .so files during testing. See #255262
+  preCheck = ''
+    rm -r textnets
+  '';
+
+  disabledTests = [
+    # Test fails: Throws a UserWarning asking the user to install `textnets[fca]`.
+    "test_context"
   ];
 
   meta = with lib; {

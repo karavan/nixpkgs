@@ -1,10 +1,12 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, cython
-, pytestCheckHook
-, hypothesis
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  wheel,
+  cython,
+  pytestCheckHook,
+  hypothesis,
 }:
 
 buildPythonPackage rec {
@@ -17,17 +19,23 @@ buildPythonPackage rec {
     hash = "sha256-UlsI9jjVz2EV32zNgY5aASmM0jCy2skcj/LmSZ0Ydl0=";
   };
 
-  nativeBuildInputs = [
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace '"pytest-runner", ' ""
+  '';
+
+  dependencies = [
     setuptools
+    wheel
     cython
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  # workaround https://github.com/pytries/datrie/issues/101
+  env.CFLAGS = "-Wno-error=incompatible-pointer-types";
 
-  checkInputs = [
+  nativeCheckInputs = [
     hypothesis
+    pytestCheckHook
   ];
 
   pythonImportsCheck = [ "datrie" ];

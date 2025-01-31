@@ -1,8 +1,15 @@
-{ stdenv, lib, fetchgit, kernel, kmod }:
+{
+  stdenv,
+  lib,
+  fetchgit,
+  kernel,
+  kernelModuleMakeFlags,
+  kmod,
+}:
 let
   version = "22.03.5";
 in
-stdenv.mkDerivation {
+stdenv.mkDerivation (finalAttrs: {
   pname = "trelay";
   version = "${version}-${kernel.version}";
 
@@ -13,15 +20,18 @@ stdenv.mkDerivation {
     sparseCheckout = [ "package/kernel/trelay/src" ];
   };
 
-  sourceRoot = "openwrt/package/kernel/trelay/src";
-  hardeningDisable = [ "pic" "format" ];
+  sourceRoot = "${finalAttrs.src.name}/package/kernel/trelay/src";
+  hardeningDisable = [
+    "pic"
+    "format"
+  ];
   nativeBuildInputs = [ kmod ] ++ kernel.moduleBuildDependencies;
 
   postPatch = ''
     cp '${./Makefile}' Makefile
   '';
 
-  makeFlags = kernel.makeFlags ++ [
+  makeFlags = kernelModuleMakeFlags ++ [
     "KERNELRELEASE=${kernel.modDirVersion}"
     "KERNEL_DIR=${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
     "INSTALL_MOD_PATH=$(out)"
@@ -43,4 +53,4 @@ stdenv.mkDerivation {
     platforms = platforms.linux;
     broken = lib.versionOlder kernel.version "5.10";
   };
-}
+})

@@ -1,6 +1,4 @@
 ## build described at https://wiki.winehq.org/Building_Wine#Shared_WoW64
-
-source $stdenv/setup
 preFlags="${configureFlags}"
 
 unpackPhase
@@ -45,7 +43,7 @@ buildPhase
 # checkPhase
 
 eval "$preInstall"
-cd $TMP/wine-wow && make install
-cd $TMP/wine64 && make install
+cd $TMP/wine-wow && make install -j$NIX_BUILD_CORES
+cd $TMP/wine64 && make install -j$NIX_BUILD_CORES
 eval "$postInstall"
 fixupPhase

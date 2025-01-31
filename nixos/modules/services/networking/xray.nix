@@ -9,27 +9,20 @@ with lib;
       enable = mkOption {
         type = types.bool;
         default = false;
-        description = lib.mdDoc ''
+        description = ''
           Whether to run xray server.
 
           Either `settingsFile` or `settings` must be specified.
         '';
       };
 
-      package = mkOption {
-        type = types.package;
-        default = pkgs.xray;
-        defaultText = literalExpression "pkgs.xray";
-        description = lib.mdDoc ''
-          Which xray package to use.
-        '';
-      };
+      package = mkPackageOption pkgs "xray" { };
 
       settingsFile = mkOption {
         type = types.nullOr types.path;
         default = null;
         example = "/etc/xray/config.json";
-        description = lib.mdDoc ''
+        description = ''
           The absolute path to the configuration file.
 
           Either `settingsFile` or `settings` must be specified.
@@ -51,7 +44,7 @@ with lib;
             protocol = "freedom";
           }];
         };
-        description = lib.mdDoc ''
+        description = ''
           The configuration object.
 
           Either `settingsFile` or `settings` must be specified.
@@ -87,9 +80,12 @@ with lib;
       description = "xray Daemon";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
+      script = ''
+        exec "${cfg.package}/bin/xray" -config "$CREDENTIALS_DIRECTORY/config.json"
+      '';
       serviceConfig = {
         DynamicUser = true;
-        ExecStart = "${cfg.package}/bin/xray -config ${settingsFile}";
+        LoadCredential = "config.json:${settingsFile}";
         CapabilityBoundingSet = "CAP_NET_ADMIN CAP_NET_BIND_SERVICE";
         AmbientCapabilities = "CAP_NET_ADMIN CAP_NET_BIND_SERVICE";
         NoNewPrivileges = true;

@@ -1,14 +1,14 @@
-{ qtModule
-, stdenv
-, lib
-, qtbase
-, udev
-, pkg-config
+{
+  qtModule,
+  stdenv,
+  lib,
+  qtbase,
+  udev,
+  pkg-config,
 }:
 
 qtModule {
   pname = "qtserialport";
-  qtInputs = [ qtbase ];
   nativeBuildInputs = [ pkg-config ];
-  propagatedBuildInputs = lib.optionals stdenv.isLinux [ udev ];
+  propagatedBuildInputs = [ qtbase ] ++ lib.optionals stdenv.hostPlatform.isLinux [ udev ];
 }

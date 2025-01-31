@@ -137,7 +137,7 @@ following will happen:
     This is a list of Haskell packages that are known to be broken.
 
 -   [`hackage-packages.nix`](hackage-packages.nix) will be regenerated.  This
-    will mark all Haskell pacakges in `configuration-hackage2nix/broken.yaml`
+    will mark all Haskell packages in `configuration-hackage2nix/broken.yaml`
     as `broken`.
 
 -   The
@@ -351,5 +351,5 @@ Here are some additional tips that didn't fit in above.
         and work the new member into the `haskell-updates` rotation.
 
     1.  Optionally, have the new member add themselves to the Haskell
-        section in [`CODEOWNERS`](../../../.github/CODEOWNERS).  This
+        section in [`OWNERS`](../../../ci/OWNERS).  This
         will cause them to get pinged on most Haskell-related PRs.

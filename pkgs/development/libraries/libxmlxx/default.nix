@@ -1,4 +1,13 @@
-{ lib, stdenv, fetchurl, pkg-config, libxml2, glibmm, perl, gnome }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  pkg-config,
+  libxml2,
+  glibmm,
+  perl,
+  gnome,
+}:
 
 stdenv.mkDerivation rec {
   pname = "libxml++";
@@ -9,11 +18,25 @@ stdenv.mkDerivation rec {
     sha256 = "1sb3akryklvh2v6m6dihdnbpf1lkx441v972q9hlz1sq6bfspm2a";
   };
 
-  outputs = [ "out" "devdoc" ];
+  configureFlags = [
+    # remove if library is updated
+    "CXXFLAGS=-std=c++11"
+  ];
 
-  nativeBuildInputs = [ pkg-config perl ];
+  outputs = [
+    "out"
+    "devdoc"
+  ];
 
-  propagatedBuildInputs = [ libxml2 glibmm ];
+  nativeBuildInputs = [
+    pkg-config
+    perl
+  ];
+
+  propagatedBuildInputs = [
+    libxml2
+    glibmm
+  ];
 
   passthru = {
     updateScript = gnome.updateScript {
@@ -29,6 +52,6 @@ stdenv.mkDerivation rec {
     description = "C++ wrapper for the libxml2 XML parser library";
     license = licenses.lgpl2Plus;
     platforms = platforms.unix;
-    maintainers = with maintainers; [ ];
+    maintainers = [ ];
   };
 }

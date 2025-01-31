@@ -1,62 +1,81 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, click
-, fetchFromGitHub
-, mock
-, prompt-toolkit
-, pygments
-, pyserial
-, pyserial-asyncio
-, pytest-asyncio
-, pytest-rerunfailures
-, pytest-xdist
-, pytestCheckHook
-, redis
-, sqlalchemy
-, tornado
-, twisted
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  click,
+  fetchFromGitHub,
+  prompt-toolkit,
+  pygments,
+  pyserial,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-xdist,
+  pytestCheckHook,
+  pythonOlder,
+  redis,
+  setuptools,
+  sqlalchemy,
+  twisted,
+  typer,
 }:
 
 buildPythonPackage rec {
   pname = "pymodbus";
-  version = "3.3.2";
-  format = "setuptools";
+  version = "3.8.3";
+  pyproject = true;
+
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "pymodbus-dev";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-EGJyb0AVLKN7FEoeWF4rVqmJBNbXHent9P+cxc13rQs=";
+    repo = "pymodbus";
+    tag = "v${version}";
+    hash = "sha256-0jS18oCVX+WvGvaIlug3Wbf4oJUmspGYlcmJQR0MXhI=";
   };
 
-  # Twisted asynchronous version is not supported due to a missing dependency
-  propagatedBuildInputs = [
-    aiohttp
-    click
-    prompt-toolkit
-    pygments
-    pyserial
-    pyserial-asyncio
-    tornado
-  ];
+  build-system = [ setuptools ];
+
+  optional-dependencies = {
+    repl = [
+      aiohttp
+      typer
+      prompt-toolkit
+      pygments
+      click
+    ];
+    serial = [ pyserial ];
+  };
 
   nativeCheckInputs = [
-    mock
     pytest-asyncio
-    pytest-rerunfailures
+    pytest-cov-stub
     pytest-xdist
     pytestCheckHook
     redis
     sqlalchemy
     twisted
-  ];
+  ] ++ lib.flatten (builtins.attrValues optional-dependencies);
 
-  pytestFlagsArray = [
-    "--reruns" "3" # Racy socket tests
-  ];
+  preCheck = ''
+    pushd test
+  '';
+
+  postCheck = ''
+    popd
+  '';
 
   pythonImportsCheck = [ "pymodbus" ];
+
+  disabledTests =
+    [
+      # Tests often hang
+      "test_connected"
+    ]
+    ++ lib.optionals (lib.versionAtLeast aiohttp.version "3.9.0") [
+      "test_split_serial_packet"
+      "test_serial_poll"
+      "test_simulator"
+    ];
 
   meta = with lib; {
     description = "Python implementation of the Modbus protocol";
@@ -70,5 +89,6 @@ buildPythonPackage rec {
     changelog = "https://github.com/pymodbus-dev/pymodbus/releases/tag/v${version}";
     license = with licenses; [ bsd3 ];
     maintainers = with maintainers; [ fab ];
+    mainProgram = "pymodbus.simulator";
   };
 }

@@ -1,13 +1,14 @@
-{ faust
-, alsa-lib
-, qtbase
-, writeText
-, makeWrapper
+{
+  faust,
+  alsa-lib,
+  qtbase,
+  writeText,
+  buildPackages,
 }:
 let
   # Wrap the binary coming out of the the compilation script, so it knows QT_PLUGIN_PATH
   wrapBinary = writeText "wrapBinary" ''
-    source ${makeWrapper}/nix-support/setup-hook
+    source ${buildPackages.makeWrapper}/nix-support/setup-hook
     for p in $FILES; do
       workpath=$PWD
       cd -- "$(dirname "$p")"

@@ -1,77 +1,62 @@
-{ lib
-, fetchFromGitHub
-, python3
+{
+  lib,
+  fetchFromGitHub,
+  python3Packages,
 }:
 
-python3.pkgs.buildPythonApplication rec {
+python3Packages.buildPythonApplication rec {
   pname = "ansible-later";
-  version = "3.3.1";
-  format = "pyproject";
+  version = "4.0.8";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "thegeeklab";
     repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-7k81eEcM+BXNrln6+Lu0+1LjsZdYkUidrRQCdlBbQB8=";
+    tag = "v${version}";
+    hash = "sha256-4ZHCnLeG5gr0UtKQLU+6xnTxUbxnLcmDd51Psnaa42I=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'version = "0.0.0"' 'version = "${version}"' \
-      --replace " --cov=ansiblelater --cov-report=xml:coverage.xml --cov-report=term --no-cov-on-fail" ""
-  '';
-
-  pythonRelaxDeps = [
-    "flake8"
-    "jsonschema"
-    "pathspec"
-    "python-json-logger"
-    "pyyaml"
-    "toolz"
-    "unidiff"
-    "yamllint"
-  ];
-
-  nativeBuildInputs = with python3.pkgs; [
+  build-system = with python3Packages; [
     poetry-core
-    pythonRelaxDepsHook
+    poetry-dynamic-versioning
   ];
 
-  propagatedBuildInputs = with python3.pkgs; [
-    ansible
+  dependencies = with python3Packages; [
+    pyyaml
     ansible-core
+    ansible
     anyconfig
     appdirs
     colorama
-    flake8
     jsonschema
     nested-lookup
     pathspec
     python-json-logger
-    pyyaml
     toolz
     unidiff
     yamllint
   ];
 
-  nativeCheckInputs = with python3.pkgs; [
+  nativeCheckInputs = with python3Packages; [
+    pytest-cov-stub
     pytest-mock
     pytestCheckHook
   ];
-
-  postInstall = ''
-    rm $out/lib/python*/site-packages/LICENSE
-  '';
 
   pythonImportsCheck = [
     "ansiblelater"
   ];
 
-  meta = with lib; {
+  preCheck = ''
+    export HOME="$TMPDIR"
+  '';
+
+  meta = {
     description = "Best practice scanner for Ansible roles and playbooks";
+    mainProgram = "ansible-later";
     homepage = "https://github.com/thegeeklab/ansible-later";
-    changelog = "https://github.com/thegeeklab/ansible-later/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ tboerger ];
+    changelog = "https://github.com/thegeeklab/ansible-later/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ tboerger ];
   };
 }

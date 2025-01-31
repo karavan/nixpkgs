@@ -10,51 +10,36 @@
 , dbus
 , polkit
 , accountsservice
-, python3
 }:
 
 stdenv.mkDerivation rec {
   pname = "elementary-default-settings";
-  version = "7.0.2";
+  version = "8.0.2";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "default-settings";
     rev = version;
-    sha256 = "sha256-YFI1UM7CxjYkoIhSg9Fn81Ze6DX7D7p89xibk7ik8bI=";
+    sha256 = "sha256-vytjRlSXnC+cSIAn6v6wpoig4zjJZObGZ6MCLfsIwIA=";
   };
 
   nativeBuildInputs = [
-    accountsservice
-    dbus
-    glib # polkit requires
+    glib # glib-compile-schemas
     meson
     ninja
     pkg-config
+  ];
+
+  buildInputs = [
+    accountsservice
+    dbus
     polkit
-    python3
   ];
 
   mesonFlags = [
     "--sysconfdir=${placeholder "out"}/etc"
     "-Ddefault-wallpaper=${nixos-artwork.wallpapers.simple-dark-gray.gnomeFilePath}"
-    "-Dplank-dockitems=false"
   ];
-
-  postPatch = ''
-    chmod +x meson/post_install.py
-    patchShebangs meson/post_install.py
-  '';
-
-  preInstall = ''
-    # Install our override for plank dockitems as the desktop file path is different.
-    schema_dir=$out/share/glib-2.0/schemas
-    install -D ${./overrides/plank-dockitems.gschema.override} $schema_dir/plank-dockitems.gschema.override
-
-    # Our launchers that use paths at /run/current-system/sw/bin
-    mkdir -p $out/etc/skel/.config/plank/dock1
-    cp -avr ${./launchers} $out/etc/skel/.config/plank/dock1/launchers
-  '';
 
   postFixup = ''
     # https://github.com/elementary/default-settings/issues/55

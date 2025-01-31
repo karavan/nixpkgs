@@ -1,25 +1,39 @@
-{ lib, stdenv, fetchFromGitHub, python3, nodejs, closurecompiler
-, jre, binaryen
-, llvmPackages
-, symlinkJoin, makeWrapper, substituteAll
-, buildNpmPackage
-, emscripten
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  python3,
+  nodejs,
+  closurecompiler,
+  jre,
+  binaryen,
+  llvmPackages,
+  symlinkJoin,
+  makeWrapper,
+  substituteAll,
+  buildNpmPackage,
+  emscripten,
 }:
 
 stdenv.mkDerivation rec {
   pname = "emscripten";
-  version = "3.1.42";
+  version = "3.1.73";
 
   llvmEnv = symlinkJoin {
     name = "emscripten-llvm-${version}";
-    paths = with llvmPackages; [ clang-unwrapped clang-unwrapped.lib lld llvm ];
+    paths = with llvmPackages; [
+      clang-unwrapped
+      (lib.getLib clang-unwrapped)
+      lld
+      llvm
+    ];
   };
 
   nodeModules = buildNpmPackage {
     name = "emscripten-node-modules-${version}";
     inherit pname version src;
 
-    npmDepsHash = "sha256-QlKm6UvPUa7+VJ9ZvXdxYZzK+U96Ju/oAHPhZ/hyv/I=";
+    npmDepsHash = "sha256-bqxUlxpIH1IAx9RbnaMq4dZW8fy+M/Q02Q7VrW/AKNQ=";
 
     dontBuild = true;
 
@@ -32,17 +46,20 @@ stdenv.mkDerivation rec {
   src = fetchFromGitHub {
     owner = "emscripten-core";
     repo = "emscripten";
-    hash = "sha256-elp/LPd9SAuVZy42Wkgb6pCbPi2GnETTfyRJqU92S0E=";
+    hash = "sha256-QlC2k2rhF3/Pz+knnrlBDV8AfHHBSlGr7b9Ae6TNsxY=";
     rev = version;
   };
 
   nativeBuildInputs = [ makeWrapper ];
-  buildInputs = [ nodejs python3 ];
+  buildInputs = [
+    nodejs
+    python3
+  ];
 
   patches = [
     (substituteAll {
       src = ./0001-emulate-clang-sysroot-include-logic.patch;
-      resourceDir = "${llvmEnv}/lib/clang/16/";
+      resourceDir = "${llvmEnv}/lib/clang/${lib.versions.major llvmPackages.llvm.version}/";
     })
   ];
 
@@ -51,11 +68,12 @@ stdenv.mkDerivation rec {
 
     patchShebangs .
 
+    # emscripten 3.1.67 requires LLVM tip-of-tree instead of LLVM 18
+    sed -i -e "s/EXPECTED_LLVM_VERSION = 20/EXPECTED_LLVM_VERSION = 19/g" tools/shared.py
+
     # fixes cmake support
     sed -i -e "s/print \('emcc (Emscript.*\)/sys.stderr.write(\1); sys.stderr.flush()/g" emcc.py
 
-    # disables cache in user home, use installation directory instead
-    sed -i '/^def/!s/root_is_writable()/True/' tools/config.py
     sed -i "/^def check_sanity/a\\  return" tools/shared.py
 
     echo "EMSCRIPTEN_ROOT = '$out/share/emscripten'" > .emscripten
@@ -85,6 +103,9 @@ stdenv.mkDerivation rec {
     cp -r . $appdir
     chmod -R +w $appdir
 
+    mkdir -p $appdir/node_modules
+    cp -r ${nodeModules}/* $appdir/node_modules
+
     mkdir -p $out/bin
     for b in em++ em-config emar embuilder.py emcc emcmake emconfigure emmake emranlib emrun emscons emsize; do
       makeWrapper $appdir/$b $out/bin/$b \
@@ -105,7 +126,11 @@ stdenv.mkDerivation rec {
         # TODO: get library cache to build with both enabled and function exported
         $out/bin/emcc $LTO $BIND test.c
         $out/bin/emcc $LTO $BIND -s RELOCATABLE test.c
-        $out/bin/emcc $LTO $BIND -s USE_PTHREADS test.c
+        # starting with emscripten 3.1.48+,
+        # to use pthreads, _emscripten_check_mailbox must be exported
+        # (see https://github.com/emscripten-core/emscripten/pull/20604)
+        # TODO: get library cache to build with pthreads at all
+        # $out/bin/emcc $LTO $BIND -s USE_PTHREADS test.c
       done
     done
     popd
@@ -128,9 +153,14 @@ stdenv.mkDerivation rec {
 
   meta = with lib; {
     homepage = "https://github.com/emscripten-core/emscripten";
-    description = "An LLVM-to-JavaScript Compiler";
+    description = "LLVM-to-JavaScript Compiler";
     platforms = platforms.all;
-    maintainers = with maintainers; [ qknight matthewbauer raitobezarius ];
+    maintainers = with maintainers; [
+      qknight
+      matthewbauer
+      raitobezarius
+      willcohen
+    ];
     license = licenses.ncsa;
   };
 }

@@ -1,17 +1,18 @@
-{ buildOctavePackage
-, lib
-, fetchurl
-, pkg-config
-, nettle
+{
+  buildOctavePackage,
+  lib,
+  fetchurl,
+  pkg-config,
+  nettle,
 }:
 
 buildOctavePackage rec {
   pname = "general";
-  version = "2.1.2";
+  version = "2.1.3";
 
   src = fetchurl {
     url = "mirror://sourceforge/octave/${pname}-${version}.tar.gz";
-    sha256 = "sha256-owzRp5dDxiUo2uRuvUqD+EiuRqHB2sPqq8NmYtQilM8=";
+    sha256 = "sha256-amslJm3haXaAehdm6jYJxcGZl+ggUcnJc3i6YJ3QkyM=";
   };
 
   nativeBuildInputs = [

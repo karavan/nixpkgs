@@ -1,32 +1,35 @@
-{ lib
-, fetchFromGitHub
-, buildDotnetModule
-, dotnetCorePackages
-, marksman
-, testers
+{
+  lib,
+  fetchFromGitHub,
+  buildDotnetModule,
+  dotnetCorePackages,
+  marksman,
+  testers,
 }:
 
 buildDotnetModule rec {
   pname = "marksman";
-  version = "2023-03-04";
+  version = "2024-12-18";
 
   src = fetchFromGitHub {
     owner = "artempyanykh";
     repo = "marksman";
     rev = version;
-    sha256 = "sha256-jBZC2z1wtDMIssgRrKkZpl9NQ3XkRCcxo5eylwB2OBQ=";
+    sha256 = "sha256-2OisUZHmf7k8vLkBGJG1HXNxaXmRF64x//bDK57S9to=";
   };
 
   projectFile = "Marksman/Marksman.fsproj";
   dotnetBuildFlags = [ "-p:VersionString=${version}" ];
 
+  __darwinAllowLocalNetworking = true;
+
   doCheck = true;
   testProjectFile = "Tests/Tests.fsproj";
 
-  nugetDeps = ./deps.nix;
+  nugetDeps = ./deps.json;
 
-  dotnet-sdk = dotnetCorePackages.sdk_6_0;
-  dotnet-runtime = dotnetCorePackages.runtime_6_0;
+  dotnet-sdk = dotnetCorePackages.sdk_8_0_4xx-bin;
+  dotnet-runtime = dotnetCorePackages.runtime_8_0;
 
   postInstall = ''
     install -m 644 -D -t "$out/share/doc/${pname}" LICENSE
@@ -52,7 +55,11 @@ buildDotnetModule rec {
     '';
     homepage = "https://github.com/artempyanykh/marksman";
     license = licenses.mit;
-    maintainers = with maintainers; [ stasjok ];
+    maintainers = with maintainers; [
+      stasjok
+      plusgut
+    ];
     platforms = dotnet-sdk.meta.platforms;
+    mainProgram = "marksman";
   };
 }

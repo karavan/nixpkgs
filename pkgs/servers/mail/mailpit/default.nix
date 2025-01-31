@@ -1,23 +1,31 @@
-{ lib
-, stdenv
-, buildGoModule
-, nodejs
-, python3
-, libtool
-, npmHooks
-, fetchFromGitHub
-, fetchNpmDeps
+{
+  lib,
+  stdenv,
+  buildGoModule,
+  nodejs,
+  python3,
+  libtool,
+  npmHooks,
+  fetchFromGitHub,
+  fetchNpmDeps,
+  testers,
+  mailpit,
+  nixosTests,
 }:
 
 let
+  source = import ./source.nix;
 
-  version = "1.7.1";
+  inherit (source)
+    version
+    vendorHash
+    ;
 
   src = fetchFromGitHub {
     owner = "axllent";
     repo = "mailpit";
     rev = "v${version}";
-    hash = "sha256-jT9QE0ikp9cJlT8qtfPPjKOUuqWyQk94D3UbkyaGXa8=";
+    hash = source.hash;
   };
 
   # Separate derivation, because if we mix this in buildGoModule, the separate
@@ -29,10 +37,15 @@ let
 
     npmDeps = fetchNpmDeps {
       inherit src;
-      hash = "sha256-6VCs8125fTJkZW+eZgK56j7ccK8tcGhIXiq2HkYp4XM=";
+      hash = source.npmDepsHash;
     };
 
-    nativeBuildInputs = [ nodejs python3 libtool npmHooks.npmConfigHook ];
+    nativeBuildInputs = [
+      nodejs
+      python3
+      libtool
+      npmHooks.npmConfigHook
+    ];
 
     buildPhase = ''
       npm run package
@@ -47,23 +60,39 @@ in
 
 buildGoModule {
   pname = "mailpit";
-  inherit src version;
+  inherit src version vendorHash;
 
-  vendorHash = "sha256-XBYIO7fdo5EahJB7EcAuY9SGKZb8dsvoJHp/D5LO5Qo=";
+  env.CGO_ENABLED = 0;
 
-  CGO_ENABLED = 0;
-
-  ldflags = [ "-s" "-w" "-X github.com/axllent/mailpit/config.Version=${version}" ];
+  ldflags = [
+    "-s"
+    "-w"
+    "-X github.com/axllent/mailpit/config.Version=${version}"
+  ];
 
   preBuild = ''
     cp -r ${ui} server/ui/dist
   '';
 
+  passthru.tests = {
+    inherit (nixosTests) mailpit;
+    version = testers.testVersion {
+      package = mailpit;
+      command = "mailpit version";
+    };
+  };
+
+  passthru.updateScript = {
+    supportedFeatures = [ "commit" ];
+    command = ./update.sh;
+  };
+
   meta = with lib; {
-    description = "An email and SMTP testing tool with API for developers";
+    description = "Email and SMTP testing tool with API for developers";
     homepage = "https://github.com/axllent/mailpit";
     changelog = "https://github.com/axllent/mailpit/releases/tag/v${version}";
     maintainers = with maintainers; [ stephank ];
     license = licenses.mit;
+    mainProgram = "mailpit";
   };
 }

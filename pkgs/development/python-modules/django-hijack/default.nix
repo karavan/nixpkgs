@@ -1,77 +1,57 @@
-{ lib
-, fetchFromGitHub
-, fetchNpmDeps
-, buildPythonPackage
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  nix-update-script,
 
-# build-system
-, gettext
-, nodejs
-, npmHooks
-, setuptools-scm
+  # build-system
+  flit-gettext,
+  flit-scm,
 
-# dependencies
-, django
-, django-compat
+  # dependencies
+  django,
 
-# tests
-, pytest-django
-, pytestCheckHook
+  # tests
+  pytest-cov-stub,
+  pytest-django,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "django-hijack";
-  version = "3.3.0";
-  format = "setuptools";
+  version = "3.7.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "django-hijack";
     repo = "django-hijack";
-    rev = "refs/tags/${version}";
-    hash = "sha256-ytQ4xxkBAC3amQbenD8RO5asrbfNAjOspWUY3c2hkig=";
+    tag = version;
+    hash = "sha256-3P7SCKS+ThBRNfXpN17N1y5vhYYWRL2JGVBOUHRdhK8=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace 'cmd = ["npm", "ci"]' 'cmd = ["true"]' \
-      --replace 'f"{self.build_lib}/{name}.mo"' 'f"{name}.mo"'
-
-    sed -i "/addopts/d" setup.cfg
-  '';
-
-  npmDeps = fetchNpmDeps {
-    inherit src;
-    hash = "sha256-FLfMCn2jsLlTTsC+LRMX0dmVCCbNAr2pQUsSQRKgo6E=";
-  };
-
-  SETUPTOOLS_SCM_PRETEND_VERSION = version;
-
-  nativeBuildInputs = [
-    gettext
-    nodejs
-    npmHooks.npmConfigHook
-    setuptools-scm
+  build-system = [
+    flit-gettext
+    flit-scm
   ];
 
-  propagatedBuildInputs = [
-    django
-    django-compat
-  ];
+  dependencies = [ django ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    pytest-cov-stub
     pytest-django
   ];
 
-  env.DJANGO_SETTINGS_MODULE = "hijack.tests.test_app.settings";
+  preCheck = ''
+    export DJANGO_SETTINGS_MODULE=tests.test_app.settings
+  '';
 
-  pytestFlagsArray = [
-    "--pyargs" "hijack"
-    "-W" "ignore::DeprecationWarning"
-  ];
+  # needed for npmDeps update
+  passthru.updateScript = nix-update-script { };
 
   meta = with lib; {
     description = "Allows superusers to hijack (=login as) and work on behalf of another user";
-    homepage = "https://github.com/arteria/django-hijack";
+    homepage = "https://github.com/django-hijack/django-hijack";
     changelog = "https://github.com/django-hijack/django-hijack/releases/tag/${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ ris ];

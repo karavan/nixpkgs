@@ -1,16 +1,17 @@
-{ stdenv
-, lib
-, fetchurl
-, unzip
-, udev
-, nwjs
-, gcc-unwrapped
-, autoPatchelfHook
-, gsettings-desktop-schemas
-, gtk3
-, wrapGAppsHook
-, makeWrapper
-, pinegrowVersion ? "7"
+{
+  stdenv,
+  lib,
+  fetchurl,
+  unzip,
+  udev,
+  nwjs,
+  gcc-unwrapped,
+  autoPatchelfHook,
+  gsettings-desktop-schemas,
+  gtk3,
+  wrapGAppsHook3,
+  makeWrapper,
+  pinegrowVersion ? "7",
 }:
 
 let
@@ -24,10 +25,12 @@ let
       };
     };
     "7" = {
-      version = "7.05.2";
+      version = "7.8";
       src = fetchurl {
-        url = "https://github.com/Pinegrow/PinegrowReleases/releases/download/pg${builtins.substring 0 4 (versions."7".version)}/PinegrowLinux64.${versions."7".version}.zip";
-        hash = "sha256-Cvy4JwnQHMp7K0mKtIH8lk1bZ9hwa8nvtmimBK0UAf8=";
+        url = "https://github.com/Pinegrow/PinegrowReleases/releases/download/pg${
+          builtins.substring 0 4 (versions."7".version)
+        }/PinegrowLinux64.${versions."7".version}.zip";
+        hash = "sha256-tYQfPfzKRwClNwgSoJfMwG3LHhi3O/iFuuwIVHS8OXk=";
       };
     };
   };
@@ -45,7 +48,7 @@ stdenv.mkDerivation rec {
     unzip
     autoPatchelfHook
     makeWrapper
-    wrapGAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [
@@ -58,7 +61,13 @@ stdenv.mkDerivation rec {
 
   dontWrapGApps = true;
   makeWrapperArgs = [
-    "--prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ gcc-unwrapped.lib gtk3 udev ]}"
+    "--prefix LD_LIBRARY_PATH : ${
+      lib.makeLibraryPath [
+        gcc-unwrapped.lib
+        gtk3
+        udev
+      ]
+    }"
     "--prefix PATH : ${lib.makeBinPath [ stdenv.cc ]}"
   ];
 
@@ -97,5 +106,6 @@ stdenv.mkDerivation rec {
     sourceProvenance = with sourceTypes; [ binaryNativeCode ];
     license = with licenses; [ unfreeRedistributable ];
     maintainers = with maintainers; [ gador ];
+    mainProgram = "pinegrow";
   };
 }

@@ -39,7 +39,7 @@ let
         doCheck = false;
         # https://github.com/hashicorp/terraform-provider-scaffolding/blob/a8ac8375a7082befe55b71c8cbb048493dd220c2/.goreleaser.yml
         # goreleaser (used for builds distributed via terraform registry) requires that CGO is disabled
-        CGO_ENABLED = 0;
+        env.CGO_ENABLED = 0;
         ldflags = [ "-s" "-w" "-X main.version=${version}" "-X main.commit=${rev}" ];
         src = mkProviderFetcher {
           name = "source-${rev}";
@@ -84,6 +84,7 @@ let
       heroku = automated-providers.heroku.override { spdx = "MPL-2.0"; };
       # mkisofs needed to create ISOs holding cloud-init data and wrapped to terraform via deecb4c1aab780047d79978c636eeb879dd68630
       libvirt = automated-providers.libvirt.overrideAttrs (_: { propagatedBuildInputs = [ cdrtools ]; });
+      minio = automated-providers.minio.override { spdx = "AGPL-3.0-only"; };
     };
 
   # Put all the providers we not longer support in this list.
@@ -93,7 +94,7 @@ let
       removed = name: date: throw "the ${name} terraform provider removed from nixpkgs on ${date}";
     in
     lib.optionalAttrs config.allowAliases {
-      ksyun = removed "ksyun" "2023/04";
+      fly = archived "fly" "2023/10";
     };
 
   # excluding aliases, used by terraform-full

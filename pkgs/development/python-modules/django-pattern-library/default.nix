@@ -1,25 +1,35 @@
-{ beautifulsoup4
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, lib
-, markdown
-, poetry-core
-, python
-, pyyaml
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  lib,
+
+  # build-system
+  poetry-core,
+
+  # dependencies
+  django,
+  markdown,
+  pyyaml,
+
+  # tests
+  beautifulsoup4,
+  pytestCheckHook,
+  pytest-django,
 }:
 
 buildPythonPackage rec {
   pname = "django-pattern-library";
-  version = "1.0.0";
-  format = "pyproject";
+  version = "1.3.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    repo = pname;
     owner = "torchbox";
-    rev = "v${version}";
-    sha256 = "sha256-V299HpbfNLa9cpVhBfzD41oe95xqh+ktQVMMVvm5Xao=";
+    repo = "django-pattern-library";
+    tag = "v${version}";
+    hash = "sha256-2a/Rg6ljBe1J0FOob7Z9aNVZZ3l+gTD34QCRjk4PiQg=";
   };
+
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     django
@@ -27,21 +37,13 @@ buildPythonPackage rec {
     markdown
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-    --replace poetry.masonry.api poetry.core.masonry.api
-  '';
-
-  nativeBuildInputs = [ poetry-core ];
-
-  checkInputs = [
+  nativeCheckInputs = [
     beautifulsoup4
+    pytestCheckHook
+    pytest-django
   ];
 
-  checkPhase = ''
-    export DJANGO_SETTINGS_MODULE=tests.settings.dev
-    ${python.interpreter} -m django test
-  '';
+  env.DJANGO_SETTINGS_MODULE = "tests.settings.dev";
 
   pythonImportsCheck = [ "pattern_library" ];
 

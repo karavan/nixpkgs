@@ -1,49 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pygments
-, pytestCheckHook
-, uvloop
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  flit-core,
+  pygments,
+  pytestCheckHook,
+  uvloop,
 }:
 
 buildPythonPackage rec {
   pname = "aiorun";
-  version = "2022.11.1";
-  format = "flit";
+  version = "2024.8.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.5";
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "cjrh";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-1qXt3HT/0sECOqPRwc0p+5+YZh1kyHSbkZHajcrjvZc=";
+    repo = "aiorun";
+    tag = "v${version}";
+    hash = "sha256-D+4IceCdPg1Akq1YgPuSGF7yAOhDe8PmioNBE5X7yuQ=";
   };
 
-  propagatedBuildInputs = [
-    pygments
-  ];
+  build-system = [ flit-core ];
+
+  dependencies = [ pygments ];
 
   nativeCheckInputs = [
     pytestCheckHook
     uvloop
   ];
 
-  # allow for writable directory for darwin
   preBuild = ''
     export HOME=$TMPDIR
   '';
 
-  pythonImportsCheck = [
-    "aiorun"
-  ];
+  pythonImportsCheck = [ "aiorun" ];
 
   meta = with lib; {
     description = "Boilerplate for asyncio applications";
     homepage = "https://github.com/cjrh/aiorun";
     changelog = "https://github.com/cjrh/aiorun/blob/v${version}/CHANGES";
     license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    maintainers = [ ];
   };
 }

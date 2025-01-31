@@ -1,27 +1,28 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, meson
-, ninja
-, pkg-config
-, python3
-, vala
-, granite
-, gtk3
-, libgee
-, wingpanel
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  meson,
+  ninja,
+  pkg-config,
+  python3,
+  vala,
+  granite,
+  gtk3,
+  libgee,
+  wingpanel,
 }:
 
 stdenv.mkDerivation rec {
   pname = "wingpanel-indicator-a11y";
-  version = "1.0.1";
+  version = "1.0.2";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = pname;
     rev = version;
-    sha256 = "sha256-iS+xTCjbRZfaUiOtHbQ+/SaajfWWAlC9XiZbIGZPO9I=";
+    sha256 = "sha256-HECK+IEUAKJ4F1TotTHF84j4BYS6EZdAtLBoM401+mw=";
   };
 
   nativeBuildInputs = [

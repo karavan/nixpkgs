@@ -1,16 +1,23 @@
-{ lib, skawarePackages }:
+{
+  lib,
+  skawarePackages,
+  skalibs,
+}:
 
-with skawarePackages;
-
-buildPackage {
+skawarePackages.buildPackage {
   pname = "mdevd";
-  version = "0.1.6.2";
-  sha256 = "rC/PkATweQRZLFiU4sQB4VuwJ+zze8uOpmHip5k0R74=";
+  version = "0.1.6.4";
+  sha256 = "c1jOUwtrm++3FeSBkJgem2mhLMqFhRnm0uS0bqt+JHA=";
 
   description = "mdev-compatible Linux hotplug manager daemon";
   platforms = lib.platforms.linux;
 
-  outputs = [ "bin" "out" "dev" "doc" ];
+  outputs = [
+    "bin"
+    "out"
+    "dev"
+    "doc"
+  ];
 
   configureFlags = [
     "--with-sysdeps=${skalibs.lib}/lib/skalibs/sysdeps"

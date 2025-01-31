@@ -1,54 +1,58 @@
-{ lib
-, stdenv
-, buildEnv
-, fetchFromGitHub
-, fetchYarnDeps
-, fixup_yarn_lock
-, cargo
-, installShellFiles
-, lame
-, mpv-unwrapped
-, ninja
-, nodejs
-, nodejs-slim
-, protobuf
-, python3
-, qt6
-, rsync
-, rustPlatform
-, writeShellScriptBin
-, yarn
-, swift
-, AVKit
-, CoreAudio
+{
+  lib,
+  stdenv,
+
+  buildEnv,
+  cargo,
+  fetchFromGitHub,
+  fetchYarnDeps,
+  installShellFiles,
+  lame,
+  mpv-unwrapped,
+  ninja,
+  nixosTests,
+  nodejs,
+  nodejs-slim,
+  fixup-yarn-lock,
+  protobuf,
+  python3,
+  qt6,
+  rsync,
+  rustPlatform,
+  writeShellScriptBin,
+  yarn,
+
+  AVKit,
+  CoreAudio,
+  swift,
+
+  mesa,
 }:
 
 let
   pname = "anki";
-  version = "2.1.61";
-  rev = "0c1eaf4ce66c1b90867af9a79b95d9e507262cf8";
+  version = "24.11";
+  rev = "87ccd24efd0ea635558b1679614b6763e4f514eb";
 
   src = fetchFromGitHub {
     owner = "ankitects";
     repo = "anki";
     rev = version;
-    hash = "sha256-prTGilOw7SfxWevnMsuGq8Zp5uLfVHzTkoAU57NzqHk=";
+    hash = "sha256-pAQBl5KbTu7LD3gKBaiyn4QiWeGYoGmxD3sDJfCZVdA=";
     fetchSubmodules = true;
   };
 
-
-  cargoDeps = rustPlatform.importCargoLock {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "csv-1.1.6" = "sha256-w728ffOVkI+IfK6FbmkGhr0CjuyqgJnPB1kutMJIUYg=";
-      "linkcheck-0.4.1-alpha.0" = "sha256-Fiom8oHW9y7vV2RLXW0ClzHOdIlBq3Z9jLP+p6Sk4GI=";
-    };
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit pname version src;
+    hash = "sha256-4V75+jS250XfUH6B4VBxtL2t308nyKzhDoq86kq6rp4=";
   };
 
-  anki-build-python = python3.withPackages (ps: with ps; [
-    pip
-    mypy-protobuf
-  ]);
+  yarnOfflineCache = fetchYarnDeps {
+    yarnLock = "${src}/yarn.lock";
+    hash = "sha256-4KQKWwlr+FuUmomKO3TEoDoSStjnyLutDxCfqGr6jzk=";
+  };
+
+  anki-build-python = python3.withPackages (ps: with ps; [ mypy-protobuf ]);
 
   # anki shells out to git to check its revision, and also to update submodules
   # We don't actually need the submodules, so we stub that out
@@ -87,29 +91,24 @@ let
     pathsToLink = [ "/bin" ];
   };
 
-  yarnOfflineCache = fetchYarnDeps {
-    yarnLock = "${src}/yarn.lock";
-    hash = "sha256-jP0ltYVB52LolGtN/GGjM4I7ira16rRTXfyJlrdjTX4=";
-  };
-
   # https://discourse.nixos.org/t/mkyarnpackage-lockfile-has-incorrect-entry/21586/3
   anki-nodemodules = stdenv.mkDerivation {
     pname = "anki-nodemodules";
+
     inherit version src yarnOfflineCache;
 
     nativeBuildInputs = [
-      fixup_yarn_lock
-      yarn
       nodejs-slim
+      fixup-yarn-lock
+      yarn
     ];
 
     configurePhase = ''
       export HOME=$NIX_BUILD_TOP
       yarn config --offline set yarn-offline-mirror $yarnOfflineCache
-      fixup_yarn_lock yarn.lock
+      fixup-yarn-lock yarn.lock
       yarn install --offline --frozen-lockfile --ignore-scripts --no-progress --non-interactive
       patchShebangs node_modules/
-      yarn run postinstall --offline
     '';
 
     installPhase = ''
@@ -118,99 +117,135 @@ let
   };
 in
 python3.pkgs.buildPythonApplication {
-  inherit pname version src;
+  inherit pname version;
 
-  outputs = [ "out" "doc" "man" ];
-
-  patches = [
-    ./patches/gl-fixup.patch
-    ./patches/no-update-check.patch
-    ./patches/0001-Skip-formatting-python-code.patch
+  outputs = [
+    "out"
+    "doc"
+    "man"
   ];
 
-  inherit cargoDeps;
+  inherit src;
+
+  patches = [
+    ./patches/disable-auto-update.patch
+    ./patches/remove-the-gl-library-workaround.patch
+    ./patches/skip-formatting-python-code.patch
+  ];
+
+  inherit cargoDeps yarnOfflineCache;
 
   nativeBuildInputs = [
     fakeGit
-    fixup_yarn_lock
     offlineYarn
+    fixup-yarn-lock
 
-    installShellFiles
     cargo
-    rustPlatform.cargoSetupHook
+    installShellFiles
     ninja
     qt6.wrapQtAppsHook
     rsync
-  ] ++ lib.optional stdenv.isDarwin swift;
-  nativeCheckInputs = with python3.pkgs; [ pytest mock astroid  ];
+    rustPlatform.cargoSetupHook
+  ] ++ lib.optional stdenv.hostPlatform.isDarwin swift;
 
   buildInputs = [
     qt6.qtbase
-  ] ++ lib.optional stdenv.isLinux qt6.qtwayland;
-  propagatedBuildInputs = with python3.pkgs; [
-    # This rather long list came from running:
-    #    grep --no-filename -oE "^[^ =]*" python/{requirements.base.txt,requirements.bundle.txt,requirements.qt6_4.txt} | \
-    #      sort | uniq | grep -v "^#$"
-    # in their repo at the git tag for this version
-    # There's probably a more elegant way, but the above extracted all the
-    # names, without version numbers, of their python dependencies. The hope is
-    # that nixpkgs versions are "close enough"
-    # I then removed the ones the check phase failed on (pythonCatchConflictsPhase)
-    beautifulsoup4
-    certifi
-    charset-normalizer
-    click
-    colorama
-    decorator
-    distro
-    flask
-    flask-cors
-    idna
-    importlib-metadata
-    itsdangerous
-    jinja2
-    jsonschema
-    markdown
-    markupsafe
-    orjson
-    pep517
-    python3.pkgs.protobuf
-    pyparsing
-    pyqt6
-    pyqt6-sip
-    pyqt6-webengine
-    pyrsistent
-    pysocks
-    requests
-    send2trash
-    six
-    soupsieve
-    urllib3
-    waitress
-    werkzeug
-    zipp
-  ] ++ lib.optionals stdenv.isDarwin [
-    AVKit
-    CoreAudio
+    qt6.qtsvg
+  ] ++ lib.optional stdenv.hostPlatform.isLinux qt6.qtwayland;
+
+  propagatedBuildInputs =
+    with python3.pkgs;
+    [
+      # This rather long list came from running:
+      #    grep --no-filename -oE "^[^ =]*" python/{requirements.base.txt,requirements.bundle.txt,requirements.qt6_lin.txt} | \
+      #      sort | uniq | grep -v "^#$"
+      # in their repo at the git tag for this version
+      # There's probably a more elegant way, but the above extracted all the
+      # names, without version numbers, of their python dependencies. The hope is
+      # that nixpkgs versions are "close enough"
+      # I then removed the ones the check phase failed on (pythonCatchConflictsPhase)
+      attrs
+      beautifulsoup4
+      blinker
+      build
+      certifi
+      charset-normalizer
+      click
+      colorama
+      decorator
+      flask
+      flask-cors
+      google-api-python-client
+      idna
+      importlib-metadata
+      itsdangerous
+      jinja2
+      jsonschema
+      markdown
+      markupsafe
+      orjson
+      packaging
+      pip
+      pip-system-certs
+      pip-tools
+      protobuf
+      pyproject-hooks
+      pyqt6
+      pyqt6-sip
+      pyqt6-webengine
+      pyrsistent
+      pysocks
+      requests
+      send2trash
+      setuptools
+      soupsieve
+      tomli
+      urllib3
+      waitress
+      werkzeug
+      wheel
+      wrapt
+      zipp
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      AVKit
+      CoreAudio
+    ];
+
+  nativeCheckInputs = with python3.pkgs; [
+    pytest
+    mock
+    astroid
   ];
 
-  # Activate optimizations
-  RELEASE = true;
+  # tests fail with too many open files
+  # TODO: verify if this is still true (I can't, no mac)
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
-  PROTOC_BINARY = lib.getExe protobuf;
-  NODE_BINARY = lib.getExe nodejs;
-  YARN_BINARY = lib.getExe offlineYarn;
-  PYTHON_BINARY = lib.getExe python3;
+  checkFlags = [
+    # this test is flaky, see https://github.com/ankitects/anki/issues/3619
+    # also remove from anki-sync-server when removing this
+    "--skip=deckconfig::update::test::should_keep_at_least_one_remaining_relearning_step"
+  ];
 
-  inherit yarnOfflineCache;
   dontUseNinjaInstall = false;
+  dontWrapQtApps = true;
+
+  env = {
+    # Activate optimizations
+    RELEASE = true;
+
+    NODE_BINARY = lib.getExe nodejs;
+    PROTOC_BINARY = lib.getExe protobuf;
+    PYTHON_BINARY = lib.getExe python3;
+    YARN_BINARY = lib.getExe offlineYarn;
+  };
 
   buildPhase = ''
     export RUST_BACKTRACE=1
     export RUST_LOG=debug
 
-    mkdir -p out/pylib/anki \
-             .git
+    mkdir -p out/pylib/anki .git
 
     echo ${builtins.substring 0 8 rev} > out/buildhash
     touch out/env
@@ -222,22 +257,36 @@ python3.pkgs.buildPythonApplication {
 
     export HOME=$NIX_BUILD_TOP
     yarn config --offline set yarn-offline-mirror $yarnOfflineCache
-    fixup_yarn_lock yarn.lock
+    fixup-yarn-lock yarn.lock
 
     patchShebangs ./ninja
     PIP_USER=1 ./ninja build wheels
   '';
 
-  # tests fail with to many open files
-  # TODO: verify if this is still true (I can't, no mac)
-  doCheck = !stdenv.isDarwin;
   # mimic https://github.com/ankitects/anki/blob/76d8807315fcc2675e7fa44d9ddf3d4608efc487/build/ninja_gen/src/python.rs#L232-L250
-  checkPhase = ''
-    HOME=$TMP ANKI_TEST_MODE=1 PYTHONPATH=$PYTHONPATH:$PWD/out/pylib \
-      pytest -p no:cacheprovider pylib/tests
-    HOME=$TMP ANKI_TEST_MODE=1 PYTHONPATH=$PYTHONPATH:$PWD/out/pylib:$PWD/pylib:$PWD/out/qt \
-      pytest -p no:cacheprovider qt/tests
-  '';
+  checkPhase =
+    let
+      disabledTestsString =
+        lib.pipe
+          [
+            # assumes / is not writeable, somehow fails on nix-portable brwap
+            "test_create_open"
+          ]
+          [
+            (lib.map (test: "not ${test}"))
+            (lib.concatStringsSep " and ")
+            lib.escapeShellArg
+          ];
+
+    in
+    ''
+      runHook preCheck
+      HOME=$TMP ANKI_TEST_MODE=1 PYTHONPATH=$PYTHONPATH:$PWD/out/pylib \
+        pytest -p no:cacheprovider pylib/tests -k ${disabledTestsString}
+      HOME=$TMP ANKI_TEST_MODE=1 PYTHONPATH=$PYTHONPATH:$PWD/out/pylib:$PWD/pylib:$PWD/out/qt \
+        pytest -p no:cacheprovider qt/tests -k ${disabledTestsString}
+      runHook postCheck
+    '';
 
   preInstall = ''
     mkdir dist
@@ -252,7 +301,6 @@ python3.pkgs.buildPythonApplication {
     installManPage qt/bundle/lin/anki.1
   '';
 
-  dontWrapQtApps = true;
   preFixup = ''
     makeWrapperArgs+=(
       "''${qtWrapperArgs[@]}"
@@ -260,9 +308,13 @@ python3.pkgs.buildPythonApplication {
     )
   '';
 
+  passthru = {
+    tests.anki-sync-server = nixosTests.anki-sync-server;
+  };
+
   meta = with lib; {
-    homepage = "https://apps.ankiweb.net/";
     description = "Spaced repetition flashcard program";
+    mainProgram = "anki";
     longDescription = ''
       Anki is a program which makes remembering things easy. Because it is a lot
       more efficient than traditional study methods, you can either greatly
@@ -275,8 +327,14 @@ python3.pkgs.buildPythonApplication {
       people's names and faces, brushing up on geography, mastering long poems,
       or even practicing guitar chords!
     '';
+    homepage = "https://apps.ankiweb.net";
     license = licenses.agpl3Plus;
-    platforms = platforms.mesaPlatforms;
-    maintainers = with maintainers; [ oxij euank ];
+    inherit (mesa.meta) platforms;
+    maintainers = with maintainers; [
+      euank
+      oxij
+    ];
+    # Reported to crash at launch on darwin (as of 2.1.65)
+    broken = stdenv.hostPlatform.isDarwin;
   };
 }

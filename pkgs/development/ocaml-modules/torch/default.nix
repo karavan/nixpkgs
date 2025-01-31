@@ -1,26 +1,27 @@
-{ lib
-, stdenv
-, buildDunePackage
-, fetchFromGitHub
-, fetchpatch
-, cmdliner
-, ctypes
-, dune-configurator
-, npy
-, ocaml-compiler-libs
-, ppx_custom_printf
-, ppx_expect
-, ppx_sexp_conv
-, sexplib
-, stdio
-, torch
+{
+  lib,
+  stdenv,
+  buildDunePackage,
+  fetchFromGitHub,
+  fetchpatch,
+  cmdliner,
+  ctypes,
+  ctypes-foreign,
+  dune-configurator,
+  npy,
+  ocaml-compiler-libs,
+  ppx_custom_printf,
+  ppx_expect,
+  ppx_sexp_conv,
+  sexplib,
+  stdio,
+  torch,
 }:
 
 buildDunePackage rec {
   pname = "torch";
   version = "0.17";
 
-  duneVersion = "3";
   minimalOCamlVersion = "4.08";
 
   src = fetchFromGitHub {
@@ -43,6 +44,7 @@ buildDunePackage rec {
   propagatedBuildInputs = [
     cmdliner
     ctypes
+    ctypes-foreign
     npy
     ocaml-compiler-libs
     ppx_custom_printf
@@ -56,13 +58,13 @@ buildDunePackage rec {
 
   preBuild = "export LIBTORCH=${torch.dev}/";
 
-  doCheck = !stdenv.isAarch64;
-  checkPhase = "dune runtest";
+  doCheck = !stdenv.hostPlatform.isAarch64;
 
   meta = with lib; {
     inherit (src.meta) homepage;
     description = "Ocaml bindings to Pytorch";
     maintainers = [ maintainers.bcdarwin ];
     license = licenses.asl20;
+    broken = true; # Not compatible with libtorch ≥ 2.3.0
   };
 }

@@ -9,7 +9,6 @@
 
 { name
 , url ? null
-, md5 ? ""
 , sha1 ? ""
 , sha256 ? ""
 , sha512 ? ""
@@ -23,7 +22,7 @@ let
   source = if url == null then src else
   fetchurl {
     url = url;
-    inherit md5 sha1 sha256 sha512 hash;
+    inherit sha1 sha256 sha512 hash;
   };
 in
 stdenv.mkDerivation {
@@ -34,8 +33,6 @@ stdenv.mkDerivation {
   };
 
   builder = writeScript "xpibuilder" ''
-    source $stdenv/setup
-
     echo "firefox addon $name into $out"
 
     UUID="${extid}"

@@ -1,40 +1,47 @@
-{ appdirs
-, buildPythonPackage
-, fetchFromGitHub
-, keras
-, lib
-, mhcgnomes
-, nose
-, pandas
-, pytestCheckHook
-, pythonRelaxDepsHook
-, pyyaml
-, scikit-learn
-, tensorflow
-, tqdm
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+
+  # dependencies
+  appdirs,
+  keras,
+  mhcgnomes,
+  pandas,
+  pyyaml,
+  scikit-learn,
+  tensorflow,
+  tf-keras,
+  tqdm,
+
+  # tests
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "mhcflurry";
-  version = "2.0.6";
-  format = "setuptools";
+  version = "2.1.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "openvax";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Cr7L6uo6Kc1PSeG5nK6zQSD7eeCFcUJUzhsX+waz7og=";
+    repo = "mhcflurry";
+    tag = "v${version}";
+    hash = "sha256-dxCGCPnk1IFKg8ZVqMJsojQL0KlNirKlHJoaaOYIzMU=";
   };
 
-  nativeBuildInputs = [ pythonRelaxDepsHook ];
-
-  pythonRemoveDeps = [
-    # See https://github.com/openvax/mhcflurry/issues/216.
-    "np-utils"
+  patches = [
+    # TODO: this has been merged in master and will thus be included in the next release.
+    (fetchpatch {
+      name = "migrate-from-nose-to-pytest";
+      url = "https://github.com/openvax/mhcflurry/commit/8e9f35381a476362ca41cb71eb0a90f6573fe4b3.patch";
+      hash = "sha256-PyyxGrjE3OZR8dKHEQBQGiRG9A8kcz/e14PRyrVvqrE=";
+    })
   ];
 
   # keras and tensorflow are not in the official setup.py requirements but are required for the CLI utilities to run.
-  propagatedBuildInputs = [
+  dependencies = [
     appdirs
     keras
     mhcgnomes
@@ -42,10 +49,15 @@ buildPythonPackage rec {
     pyyaml
     scikit-learn
     tensorflow
+    tf-keras
     tqdm
   ];
 
-  nativeCheckInputs = [ nose pytestCheckHook ];
+  # Tests currently depend on nose; see
+  # <https://github.com/openvax/mhcflurry/pull/244>.
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
 
   disabledTests = [
     # RuntimeError: Missing MHCflurry downloadable file: /homeless-shelter/.local...
@@ -75,10 +87,6 @@ buildPythonPackage rec {
     "test_run_serial"
     "test_speed_allele_specific"
     "test_speed_pan_allele"
-
-    # See https://github.com/openvax/mhcflurry/issues/217
-    "test_more"
-    "test_small"
   ];
 
   disabledTestPaths = [
@@ -90,10 +98,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "mhcflurry" ];
 
-  meta = with lib; {
+  meta = {
     description = "Peptide-MHC I binding affinity prediction";
     homepage = "https://github.com/openvax/mhcflurry";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ samuela ];
+    changelog = "https://github.com/openvax/mhcflurry/releases/tag/v${version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ samuela ];
   };
 }

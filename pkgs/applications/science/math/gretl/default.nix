@@ -1,13 +1,30 @@
-{ lib, stdenv, fetchurl, curl, fftw, gmp, gnuplot, gtk3, gtksourceview3, json-glib
-, lapack, libxml2, mpfr, openblas, pkg-config, readline }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  curl,
+  fftw,
+  gmp,
+  gnuplot,
+  gtk3,
+  gtksourceview3,
+  json-glib,
+  lapack,
+  libxml2,
+  mpfr,
+  openblas,
+  readline,
+  pkg-config,
+  llvmPackages,
+}:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "gretl";
-  version = "2023a";
+  version = "2024d";
 
   src = fetchurl {
-    url = "mirror://sourceforge/gretl/${pname}-${version}.tar.xz";
-    sha256 = "sha256-T1UwQhw/Tr/juYqVJBkst2LRBCIXPLvVd0N+QCJcVtM=";
+    url = "mirror://sourceforge/gretl/gretl-${finalAttrs.version}.tar.xz";
+    hash = "sha256-mQNWjCc9sJtpMbwgd0CNjAiyvaTng6DqWyy8WbW126w=";
   };
 
   buildInputs = [
@@ -23,9 +40,13 @@ stdenv.mkDerivation rec {
     mpfr
     openblas
     readline
+  ] ++ lib.optionals stdenv.cc.isClang [ llvmPackages.openmp ];
+
+  nativeBuildInputs = [
+    pkg-config
   ];
 
-  nativeBuildInputs = [ pkg-config ];
+  env.NIX_LDFLAGS = lib.optionalString stdenv.cc.isClang "-lomp";
 
   enableParallelBuilding = true;
   # Missing install depends:
@@ -33,15 +54,15 @@ stdenv.mkDerivation rec {
   #  make[1]: *** [Makefile:73: install_datafiles] Error 1
   enableParallelInstalling = false;
 
-  meta = with lib; {
-    description = "A software package for econometric analysis";
+  meta = {
+    description = "Software package for econometric analysis";
+    homepage = "https://gretl.sourceforge.net";
+    license = lib.licenses.gpl3;
     longDescription = ''
       gretl is a cross-platform software package for econometric analysis,
       written in the C programming language.
     '';
-    homepage = "https://gretl.sourceforge.net";
-    license = licenses.gpl3;
-    maintainers = with maintainers; [ dmrauh ];
-    platforms = with platforms; all;
+    maintainers = with lib.maintainers; [ dmrauh ];
+    platforms = lib.platforms.all;
   };
-}
+})

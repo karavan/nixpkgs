@@ -1,47 +1,58 @@
-{ lib
-, asyncpg
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, numpy
-, postgresql
-, postgresqlTestHook
-, psycopg
-, psycopg2
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, sqlalchemy
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  numpy,
+
+  # tests
+  asyncpg,
+  django,
+  peewee,
+  postgresql,
+  postgresqlTestHook,
+  psycopg,
+  psycopg2,
+  pytest-asyncio,
+  pytestCheckHook,
+  scipy,
+  sqlalchemy,
+  sqlmodel,
 }:
 
 buildPythonPackage rec {
   pname = "pgvector";
-  version = "0.1.8";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "0.3.6";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pgvector";
     repo = "pgvector-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-+0daPPZGVkqfZw0gOZwIl+knL/zZki9fs5kA3dYqPpE=";
+    tag = "v${version}";
+    hash = "sha256-ho0UgamZxsN+pv7QkpsDnN7f+I+SrexA2gVtmJF8/3Q=";
   };
 
-  propagatedBuildInputs = [
-    numpy
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ numpy ];
 
   nativeCheckInputs = [
     asyncpg
     django
-    (postgresql.withPackages (p: with p; [ pgvector ]))
-    postgresqlTestHook
+    peewee
     psycopg
     psycopg2
+    (postgresql.withPackages (p: with p; [ pgvector ]))
+    postgresqlTestHook
     pytest-asyncio
     pytestCheckHook
+    scipy
     sqlalchemy
+    sqlmodel
   ];
 
   env = {
@@ -52,11 +63,13 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pgvector" ];
 
-  meta = with lib; {
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     description = "Pgvector support for Python";
     homepage = "https://github.com/pgvector/pgvector-python";
     changelog = "https://github.com/pgvector/pgvector-python/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ natsukium ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ natsukium ];
   };
 }

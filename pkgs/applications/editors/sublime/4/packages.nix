@@ -3,17 +3,17 @@
 let
   common = opts: callPackage (import ./common.nix opts);
 in
-  {
-    sublime4 = common {
-      buildVersion = "4143";
-      x64sha256 = "fehiw40ZNnQUEXEQMo3e11SscJ/tVMjMXLBzfIlMBzw=";
-      aarch64sha256 = "4zpNHVEHO98vHcWTbqmwlrB4+HIwoQojeQvq7nAqSpM=";
-    } {};
+{
+  sublime4 = common {
+    buildVersion = "4189";
+    x64sha256 = "0vEG2FfLK+93UtpYV9iWl187iN79Tozm38Vh6lbzW7A=";
+    aarch64sha256 = "ZyLnbvpyxvJfyfu663ED0Yn5M37As+jy6TREZMgSHgI=";
+  } { };
 
-    sublime4-dev = common {
-      buildVersion = "4150";
-      dev = true;
-      x64sha256 = "6Kafp4MxmCn978SqjSY8qAT6Yc/7WC8U9jVkIUUmUHs=";
-      aarch64sha256 = "dPxe2RLoMJS+rVtcVZZpMPQ5gfTEnW/INcnzYYeFEIQ=";
-    } {};
-  }
+  sublime4-dev = common {
+    buildVersion = "4188";
+    dev = true;
+    x64sha256 = "b7JyJ9cPxb/Yjy9fvcz/m6OLETxMd8rwkmrEyMGAjjc=";
+    aarch64sha256 = "oGL0UtQge21oH6p6BNsRkxqgvdi9PkT/uwZTYygu+ng=";
+  } { };
+}

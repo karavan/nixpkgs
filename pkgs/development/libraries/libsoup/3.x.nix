@@ -1,61 +1,70 @@
-{ stdenv
-, lib
-, fetchurl
-, glib
-, meson
-, ninja
-, pkg-config
-, gnome
-, libsysprof-capture
-, sqlite
-, glib-networking
-, buildPackages
-, gobject-introspection
-, withIntrospection ? stdenv.hostPlatform.emulatorAvailable buildPackages
-, vala
-, libpsl
-, python3
-, gi-docgen
-, brotli
-, libnghttp2
+{
+  stdenv,
+  lib,
+  fetchurl,
+  glib,
+  meson,
+  ninja,
+  pkg-config,
+  gnome,
+  libsysprof-capture,
+  sqlite,
+  buildPackages,
+  gobject-introspection,
+  withIntrospection ?
+    lib.meta.availableOn stdenv.hostPlatform gobject-introspection
+    && stdenv.hostPlatform.emulatorAvailable buildPackages,
+  vala,
+  libpsl,
+  python3,
+  gi-docgen,
+  brotli,
+  libnghttp2,
 }:
 
 stdenv.mkDerivation rec {
   pname = "libsoup";
-  version = "3.4.2";
+  version = "3.6.1";
 
-  outputs = [ "out" "dev" ] ++ lib.optional withIntrospection "devdoc";
+  outputs = [
+    "out"
+    "dev"
+  ] ++ lib.optional withIntrospection "devdoc";
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "sha256-eMj6N8sVLUDsjEoUjWFV4vaUfz8WAqfNo6Ma1A9e4vM=";
+    sha256 = "sha256-zrHxqivdc7LNgVnTmYyWxV7wl+8V5LTzYCkgn6GK+Dg=";
   };
 
   depsBuildBuild = [
     pkg-config
   ];
 
-  nativeBuildInputs = [
-    meson
-    ninja
-    pkg-config
-    glib
-    python3
-  ] ++ lib.optionals withIntrospection [
-    gi-docgen
-    gobject-introspection
-    vala
-  ];
+  nativeBuildInputs =
+    [
+      meson
+      ninja
+      pkg-config
+      glib
+      python3
+    ]
+    ++ lib.optionals withIntrospection [
+      gi-docgen
+      gobject-introspection
+      vala
+    ];
 
-  buildInputs = [
-    sqlite
-    libpsl
-    glib.out
-    brotli
-    libnghttp2
-  ] ++ lib.optionals stdenv.isLinux [
-    libsysprof-capture
-  ];
+  buildInputs =
+    [
+      sqlite
+      libpsl
+      glib.out
+      brotli
+      libnghttp2
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isLinux [
+      libsysprof-capture
+    ];
 
   propagatedBuildInputs = [
     glib
@@ -72,7 +81,7 @@ stdenv.mkDerivation rec {
 
     (lib.mesonEnable "docs" withIntrospection)
     (lib.mesonEnable "introspection" withIntrospection)
-    (lib.mesonEnable "sysprof" stdenv.isLinux)
+    (lib.mesonEnable "sysprof" stdenv.hostPlatform.isLinux)
     (lib.mesonEnable "vapi" withIntrospection)
   ];
 
@@ -81,6 +90,7 @@ stdenv.mkDerivation rec {
 
   # HSTS tests fail.
   doCheck = false;
+  separateDebugInfo = true;
 
   postPatch = ''
     patchShebangs libsoup/
@@ -92,9 +102,6 @@ stdenv.mkDerivation rec {
   '';
 
   passthru = {
-    propagatedUserEnvPackages = [
-      glib-networking.out
-    ];
     updateScript = gnome.updateScript {
       attrPath = "libsoup_3";
       packageName = pname;
@@ -104,7 +111,7 @@ stdenv.mkDerivation rec {
 
   meta = {
     description = "HTTP client/server library for GNOME";
-    homepage = "https://wiki.gnome.org/Projects/libsoup";
+    homepage = "https://gitlab.gnome.org/GNOME/libsoup";
     license = lib.licenses.lgpl2Plus;
     inherit (glib.meta) maintainers platforms;
   };

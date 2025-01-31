@@ -1,15 +1,16 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, boost
-, cmake
-, catch2
-, pkg-config
-, substituteAll
-, yaml-cpp
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  boost,
+  cmake,
+  catch2,
+  pkg-config,
+  replaceVars,
+  yaml-cpp,
 }:
 
-stdenv.mkDerivation (finalAttrs: {
+stdenv.mkDerivation {
   pname = "ebpf-verifier";
   version = "unstable-2023-07-15";
 
@@ -22,9 +23,8 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   patches = [
-    (substituteAll {
+    (replaceVars ./remove-fetchcontent-usage.patch {
       # We will download them instead of cmake's fetchContent
-      src = ./remove-fetchcontent-usage.patch;
       catch2Src = catch2.src;
     })
   ];
@@ -38,8 +38,6 @@ stdenv.mkDerivation (finalAttrs: {
     boost
     yaml-cpp
   ];
-
-  cmakeFlags = [ "-DCMAKE_BUILD_TYPE=Release" ];
 
   installPhase = ''
     runHook preInstall
@@ -56,5 +54,6 @@ stdenv.mkDerivation (finalAttrs: {
     license = licenses.mit;
     platforms = platforms.linux;
     maintainers = with maintainers; [ gaelreyrol ];
+    mainProgram = "ebpf-verifier";
   };
-})
+}

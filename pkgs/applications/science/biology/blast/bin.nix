@@ -1,43 +1,59 @@
-{ lib
-, stdenv
-, fetchurl
-, python3
-, perl
-, blast
-, autoPatchelfHook
-, zlib
-, bzip2
-, glib
-, libxml2
-, coreutils
+{
+  lib,
+  stdenv,
+  fetchurl,
+  python3,
+  perl,
+  blast,
+  autoPatchelfHook,
+  zlib,
+  bzip2,
+  glib,
+  libxml2,
+  coreutils,
+  sqlite,
 }:
 let
   pname = "blast-bin";
-  version = "2.13.0";
+  version = "2.16.0";
 
   srcs = rec {
     x86_64-linux = fetchurl {
       url = "https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${version}/ncbi-blast-${version}+-x64-linux.tar.gz";
-      hash = "sha256-QPK3OdT++GoNI1NHyEpu2/hB2hqHYPQ/vNXFAVCwVEc=";
+      hash = "sha256-sLEwmMkB0jsyStFwDnRxu3QIp/f1F9dNX6rXEb526PQ=";
     };
     aarch64-linux = fetchurl {
-      url = "https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${version}/ncbi-blast-${version}+-x64-arm-linux.tar.gz";
-      hash = "sha256-vY8K66k7KunpBUjFsJTTb+ur5n1XmU0/mYxhZsi9ycs=";
+      url = "https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${version}/ncbi-blast-${version}+-aarch64-linux.tar.gz";
+      hash = "sha256-1EeiMu08R9Glq8qRky4OTT5lQPLJcM7iaqUrmUOS4MI=";
     };
     x86_64-darwin = fetchurl {
       url = "https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${version}/ncbi-blast-${version}+-x64-macosx.tar.gz";
-      hash = "sha256-Y0JlOUl9Ego6LTxTCNny3P5c1H3fApPXQm7Z6Zhq9RA=";
+      hash = "sha256-fu4edyD12q8G452ckrEl2Qct5+uB9JnABd7bCLkyMkw=";
     };
-    aarch64-darwin = x86_64-darwin;
+    aarch64-darwin = fetchurl {
+      url = "https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${version}/ncbi-blast-${version}+-aarch64-macosx.tar.gz";
+      hash = "sha256-6NpPNLBCHaBRscLZ5fjh5Dv3bjjPk2Gh2+L7xEtiJNs=";
+    };
   };
   src = srcs.${stdenv.hostPlatform.system};
 in
 stdenv.mkDerivation {
   inherit pname version src;
 
-  nativeBuildInputs = lib.optionals stdenv.isLinux [ autoPatchelfHook ];
+  nativeBuildInputs = lib.optionals stdenv.hostPlatform.isLinux [ autoPatchelfHook ];
 
-  buildInputs = [ python3 perl ] ++ lib.optionals stdenv.isLinux [ zlib bzip2 glib libxml2 ];
+  buildInputs =
+    [
+      python3
+      perl
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isLinux [
+      zlib
+      bzip2
+      glib
+      libxml2
+      sqlite
+    ];
 
   installPhase = ''
     runHook preInstall
@@ -54,7 +70,13 @@ stdenv.mkDerivation {
 
   meta = with lib; {
     inherit (blast.meta) description homepage license;
-    platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "aarch64-darwin"
+    ];
+    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
     maintainers = with maintainers; [ natsukium ];
   };
 }

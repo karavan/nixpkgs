@@ -21,7 +21,8 @@ TOKENS = {
 }
 SNAPSHOT_VALUE = 99999
 PLUGINS_FILE = Path(__file__).parent.joinpath("plugins.json").resolve()
-IDES_FILE = Path(__file__).parent.joinpath("../versions.json").resolve()
+IDES_BIN_FILE = Path(__file__).parent.joinpath("../bin/versions.json").resolve()
+IDES_SOURCE_FILE = Path(__file__).parent.joinpath("../source/ides.json").resolve()
 # The plugin compatibility system uses a different naming scheme to the ide update system.
 # These dicts convert between them
 FRIENDLY_TO_PLUGIN = {
@@ -36,6 +37,7 @@ FRIENDLY_TO_PLUGIN = {
     "pycharm-professional": "PYCHARM",
     "rider": "RIDER",
     "ruby-mine": "RUBYMINE",
+    "rust-rover": "RUST",
     "webstorm": "WEBSTORM"
 }
 PLUGIN_TO_FRIENDLY = {j: i for i, j in FRIENDLY_TO_PLUGIN.items()}
@@ -312,7 +314,6 @@ def get_plugin_info(pid: str, channel: str) -> dict:
 def ids_to_infos(ids: list[str]) -> dict:
     result = {}
     for pid in ids:
-
         if "-" in pid:
             int_id, channel = pid.split("-", 1)
         else:
@@ -324,16 +325,26 @@ def ids_to_infos(ids: list[str]) -> dict:
 
 
 def get_ide_versions() -> dict:
-    ide_data = load(open(IDES_FILE))
     result = {}
+
+    # Bin IDEs
+    ide_data = load(open(IDES_BIN_FILE))
     for platform in ide_data:
         for product in ide_data[platform]:
-
             version = ide_data[platform][product]["build_number"]
             if product not in result:
                 result[product] = [version]
             elif version not in result[product]:
                 result[product].append(version)
+
+    # Source IDEs
+    ide_source_data = load(open(IDES_SOURCE_FILE))
+    for product, ide_info in ide_source_data.items():
+        version = ide_info["buildNumber"]
+        if product not in result:
+            result[product] = [version]
+        elif version not in result[product]:
+            result[product].append(version)
 
     # Gateway isn't a normal IDE, so it doesn't use the same plugins system
     del result["gateway"]
@@ -379,6 +390,11 @@ def main():
     result["files"] = get_file_hashes(file_list, refetch_all)
 
     write_result(result)
+
+    # Commit the result
+    commitMessage = "jetbrains.plugins: update"
+    print("#### Committing changes... ####")
+    run(['git', 'commit', f'-m{commitMessage}', '--', f'{PLUGINS_FILE}'], check=True)
 
 
 if __name__ == '__main__':

@@ -1,31 +1,45 @@
-{ lib
-, buildDunePackage
-, bigstringaf
-, cstruct
-, domain-local-await
-, dune-configurator
-, fetchurl
-, fmt
-, hmap
-, lwt-dllist
-, mtime
-, optint
-, psq
-, alcotest
-, crowbar
-, mdx
+{
+  lib,
+  ocaml,
+  version ? if lib.versionAtLeast ocaml.version "5.1" then "1.2" else "0.12",
+  buildDunePackage,
+  bigstringaf,
+  cstruct,
+  domain-local-await,
+  fetchurl,
+  fmt,
+  hmap,
+  lwt-dllist,
+  mtime,
+  optint,
+  psq,
+  alcotest,
+  crowbar,
+  mdx,
 }:
 
+let
+  param =
+    {
+      "0.12" = {
+        minimalOCamlVersion = "5.0";
+        hash = "sha256-2EhHzoX/t4ZBSWrSS+PGq1zCxohc7a1q4lfsrFnZJqA=";
+      };
+      "1.2" = {
+        minimalOCamlVersion = "5.1";
+        hash = "sha256-N5LpEr2NSUuy449zCBgl5NISsZcM8sHxspZsqp/WvEA=";
+      };
+    }
+    ."${version}";
+in
 buildDunePackage rec {
   pname = "eio";
-  version = "0.11";
-
-  minimalOCamlVersion = "5.0";
-  duneVersion = "3";
+  inherit version;
+  inherit (param) minimalOCamlVersion;
 
   src = fetchurl {
     url = "https://github.com/ocaml-multicore/${pname}/releases/download/v${version}/${pname}-${version}.tbz";
-    sha256 = "DDN0IHRWJjFneIb0/koC+Wcs7JQpf/hcLthU21uqcao=";
+    inherit (param) hash;
   };
 
   propagatedBuildInputs = [
@@ -51,8 +65,8 @@ buildDunePackage rec {
   ];
 
   meta = {
-    homepage = "https://github.com/ocaml-multicore/ocaml-${pname}";
-    changelog = "https://github.com/ocaml-multicore/ocaml-${pname}/raw/v${version}/CHANGES.md";
+    homepage = "https://github.com/ocaml-multicore/${pname}";
+    changelog = "https://github.com/ocaml-multicore/${pname}/raw/v${version}/CHANGES.md";
     description = "Effects-Based Parallel IO for OCaml";
     license = with lib.licenses; [ isc ];
     maintainers = with lib.maintainers; [ toastal ];

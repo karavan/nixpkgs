@@ -1,40 +1,37 @@
-{ lib
-, stdenv
-, fetchurl
-, fetchpatch2
-, meson
-, ninja
-, pkg-config
-, check
-, dbus
-, xvfb-run
-, glib
-, gtk
-, gettext
-, libiconv
-, json-glib
-, libintl
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  meson,
+  ninja,
+  pkg-config,
+  check,
+  dbus,
+  xvfb-run,
+  glib,
+  gtk,
+  gettext,
+  libiconv,
+  json-glib,
+  libintl,
+  zathura,
 }:
 
 stdenv.mkDerivation rec {
   pname = "girara";
-  version = "0.3.9";
+  version = "0.4.5";
 
-  outputs = [ "out" "dev" ];
-
-  src = fetchurl {
-    url = "https://git.pwmt.org/pwmt/${pname}/-/archive/${version}/${pname}-${version}.tar.gz";
-    hash = "sha256-DoqYykR/N17BHQ90GoLvAYluQ3odWPwUGRTacN6BiWU=";
-  };
-
-  patches = [
-    # Fix memory management bug revealed by GLib 2.76.
-    # https://git.pwmt.org/pwmt/girara/-/issues/17
-    (fetchpatch2 {
-      url = "https://git.pwmt.org/pwmt/girara/-/commit/6926cc1234853ccf3010a1e2625aafcf462ed60e.patch";
-      hash = "sha256-uayT6ikXtaBPxhZFyskShug3Tbvy2a9qimLRwdiAsic=";
-    })
+  outputs = [
+    "out"
+    "dev"
   ];
+
+  src = fetchFromGitHub {
+    owner = "pwmt";
+    repo = "girara";
+    tag = version;
+    hash = "sha256-XjRmGgljlkvxwcbPmA9ZFAPAjbClSQDdmQU/GFeLLxI=";
+  };
 
   nativeBuildInputs = [
     meson
@@ -61,11 +58,13 @@ stdenv.mkDerivation rec {
     xvfb-run
   ];
 
-  doCheck = !stdenv.isDarwin;
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
   mesonFlags = [
     "-Ddocs=disabled" # docs do not seem to be installed
-    (lib.mesonEnable "tests" (stdenv.buildPlatform.canExecute stdenv.hostPlatform))
+    (lib.mesonEnable "tests" (
+      (stdenv.buildPlatform.canExecute stdenv.hostPlatform) && (!stdenv.hostPlatform.isDarwin)
+    ))
   ];
 
   checkPhase = ''
@@ -75,15 +74,19 @@ stdenv.mkDerivation rec {
       meson test --print-errorlogs
   '';
 
-  meta = with lib; {
-    homepage = "https://git.pwmt.org/pwmt/girara";
+  passthru.tests = {
+    inherit zathura;
+  };
+
+  meta = {
+    homepage = "https://pwmt.org/projects/girara";
     description = "User interface library";
     longDescription = ''
       girara is a library that implements a GTK based VIM-like user interface
       that focuses on simplicity and minimalism.
     '';
-    license = licenses.zlib;
-    platforms = platforms.linux ++ platforms.darwin;
+    license = lib.licenses.zlib;
+    platforms = lib.platforms.linux ++ lib.platforms.darwin;
     maintainers = [ ];
   };
 }

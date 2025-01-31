@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytestCheckHook,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
@@ -16,7 +17,7 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "tiagocoutinho";
     repo = pname;
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-NSGd7/k1Yr408dipMNBSPRSwQ+wId7VLxgqMM/UmN/Q=";
   };
 
@@ -27,14 +28,14 @@ buildPythonPackage rec {
       --replace "--durations=2 --verbose" ""
   '';
 
+  __darwinAllowLocalNetworking = true;
+
   nativeCheckInputs = [
     pytest-asyncio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "sockio"
-  ];
+  pythonImportsCheck = [ "sockio" ];
 
   disabledTests = [
     # Tests require network access

@@ -1,6 +1,15 @@
-{ lib, stdenv, fetchFromGitHub, pkg-config, pidgin, glib, json-glib, nss, nspr
-, libsecret
-} :
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  pkg-config,
+  pidgin,
+  glib,
+  json-glib,
+  nss,
+  nspr,
+  libsecret,
+}:
 
 stdenv.mkDerivation rec {
   pname = "pidgin-opensteamworks";
@@ -13,7 +22,7 @@ stdenv.mkDerivation rec {
     sha256 = "sha256-VWsoyFG+Ro+Y6ngSTMQ7yBYf6awCMNOc6U0WqNeg/jU=";
   };
 
-  sourceRoot = "source/steam-mobile";
+  sourceRoot = "${src.name}/steam-mobile";
 
   installFlags = [
     "PLUGIN_DIR_PURPLE=${placeholder "out"}/lib/purple-2"
@@ -24,7 +33,12 @@ stdenv.mkDerivation rec {
     pkg-config
   ];
   buildInputs = [
-    pidgin glib json-glib nss nspr libsecret
+    pidgin
+    glib
+    json-glib
+    nss
+    nspr
+    libsecret
   ];
 
   meta = with lib; {

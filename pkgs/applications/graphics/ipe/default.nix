@@ -1,7 +1,7 @@
 { lib
 , stdenv
 , makeDesktopItem
-, fetchurl
+, fetchFromGitHub
 , pkg-config
 , copyDesktopItems
 , cairo
@@ -13,23 +13,26 @@
 , libspiro
 , lua5
 , qtbase
-, texlive
+, qtsvg
+, texliveSmall
+, qhull
 , wrapQtAppsHook
 , zlib
 , withTeXLive ? true
+, withQVoronoi ? false
+, buildPackages
 }:
 
 stdenv.mkDerivation rec {
   pname = "ipe";
-  version = "7.2.26";
+  version = "7.2.30";
 
-  src = fetchurl {
-    url = "https://github.com/otfried/ipe/releases/download/v${version}/ipe-${version}-src.tar.gz";
-    sha256 = "sha256-5J0AV5E6SlFrIBfwDZrbJnkDUoVZ0fDH669s2RQ1CqU=";
+  src = fetchFromGitHub {
+    owner = "otfried";
+    repo = "ipe";
+    tag = "v${version}";
+    hash = "sha256-bvwEgEP/cinigixJr8e964sm6secSK+7Ul7WFfwM0gE=";
   };
-  patches = [
-    ./headers-lookup.patch
-  ];
 
   nativeBuildInputs = [ pkg-config copyDesktopItems wrapQtAppsHook ];
 
@@ -43,19 +46,26 @@ stdenv.mkDerivation rec {
     libspiro
     lua5
     qtbase
+    qtsvg
     zlib
   ] ++ (lib.optionals withTeXLive [
-    texlive
+    texliveSmall
+  ]) ++ (lib.optionals withQVoronoi [
+    qhull
   ]);
 
   makeFlags = [
     "-C src"
     "IPEPREFIX=${placeholder "out"}"
     "LUA_PACKAGE=lua"
+    "MOC=${buildPackages.qt6Packages.qtbase}/libexec/moc"
     "IPE_NO_SPELLCHECK=1" # qtSpell is not yet packaged
-  ];
+  ] ++ (lib.optionals withQVoronoi [
+    "IPEQVORONOI=1"
+    "QHULL_CFLAGS=-I${qhull}/include/libqhull_r"
+  ]);
 
-  qtWrapperArgs = lib.optionals withTeXLive [ "--prefix PATH : ${lib.makeBinPath [ texlive ]}" ];
+  qtWrapperArgs = lib.optionals withTeXLive [ "--prefix PATH : ${lib.makeBinPath [ texliveSmall ]}" ];
 
   enableParallelBuilding = true;
 
@@ -80,7 +90,7 @@ stdenv.mkDerivation rec {
   '';
 
   meta = with lib; {
-    description = "An editor for drawing figures";
+    description = "Editor for drawing figures";
     homepage = "http://ipe.otfried.org"; # https not available
     license = licenses.gpl3Plus;
     longDescription = ''

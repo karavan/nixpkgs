@@ -1,35 +1,45 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchFromGitHub,
+  hatchling,
+  pytestCheckHook,
+  pythonAtLeast,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "beartype";
-  version = "0.14.0";
-  format = "setuptools";
+  version = "0.19.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-VG5ujc3aHW2fkG6k6xUYqgHJxfWkQOSVkXstr1PL1Zg=";
+  src = fetchFromGitHub {
+    owner = "beartype";
+    repo = "beartype";
+    tag = "v${version}";
+    hash = "sha256-uUwqgK7K8x61J7A6S/DGLJljSKABxsbOCsFBDtsameU=";
   };
+
+  build-system = [ hatchling ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    typing-extensions
   ];
 
-  pythonImportsCheck = [
-    "beartype"
+  pythonImportsCheck = [ "beartype" ];
+
+  # this test is not run upstream, and broke in 3.13 (_nparams removed)
+  disabledTests = lib.optionals (pythonAtLeast "3.13") [
+    "test_door_is_subhint"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Fast runtime type checking for Python";
     homepage = "https://github.com/beartype/beartype";
     changelog = "https://github.com/beartype/beartype/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bcdarwin ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

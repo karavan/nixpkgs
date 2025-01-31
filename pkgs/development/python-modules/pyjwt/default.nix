@@ -1,51 +1,55 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, cryptography
-, pytestCheckHook
-, pythonOlder
-, sphinxHook
-, sphinx-rtd-theme
-, zope_interface
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  cryptography,
+  pytestCheckHook,
+  sphinxHook,
+  sphinx-rtd-theme,
+  zope-interface,
+  oauthlib,
 }:
 
 buildPythonPackage rec {
   pname = "pyjwt";
-  version = "2.7.0";
-  format = "pyproject";
+  version = "2.10.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "PyJWT";
-    inherit version;
-    hash = "sha256-vWyko8QoXBotQ0nloDX9+PuU4EzND8vmuiidrpzD4HQ=";
+  src = fetchFromGitHub {
+    owner = "jpadilla";
+    repo = "pyjwt";
+    tag = version;
+    hash = "sha256-BPVythRLpglYtpLEoaC7+Q4l9izYXH2M9JEbxdyQZqU=";
   };
-
-  postPatch = ''
-    sed -i '/types-cryptography/d' setup.cfg
-  '';
 
   outputs = [
     "out"
     "doc"
   ];
 
+  build-system = [ setuptools ];
+
   nativeBuildInputs = [
     sphinxHook
     sphinx-rtd-theme
-    zope_interface
+    zope-interface
   ];
 
-  passthru.optional-dependencies.crypto = [
-    cryptography
-  ];
+  optional-dependencies.crypto = [ cryptography ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ] ++ (lib.flatten (lib.attrValues passthru.optional-dependencies));
+  nativeCheckInputs = [ pytestCheckHook ] ++ (lib.flatten (lib.attrValues optional-dependencies));
+
+  disabledTests = [
+    # requires internet connection
+    "test_get_jwt_set_sslcontext_default"
+  ];
 
   pythonImportsCheck = [ "jwt" ];
+
+  passthru.tests = {
+    inherit oauthlib;
+  };
 
   meta = with lib; {
     changelog = "https://github.com/jpadilla/pyjwt/blob/${version}/CHANGELOG.rst";

@@ -1,61 +1,67 @@
-{ absl-py
-, buildPythonPackage
-, cloudpickle
-, dm-tree
-, fetchFromGitHub
-, jax
-, jaxlib
-, lib
-, numpy
-, pytestCheckHook
-, toolz
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  absl-py,
+  jax,
+  jaxlib,
+  numpy,
+  toolz,
+  typing-extensions,
+
+  # tests
+  cloudpickle,
+  dm-tree,
+  pytestCheckHook,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "chex";
-  version = "0.1.6";
-  format = "setuptools";
+  version = "0.1.88";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "deepmind";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-VolRlLLgKga9S17ByVrYya9VPtu9yiOnvt/WmlE1DOc=";
+    repo = "chex";
+    tag = "v${version}";
+    hash = "sha256-umRq+FZwyx1hz839ZibRTEFKjbBugrfUJuE8PagjqI4=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     absl-py
-    cloudpickle
-    dm-tree
     jax
+    jaxlib
     numpy
     toolz
+    typing-extensions
   ];
 
-  pythonImportsCheck = [
-    "chex"
-  ];
+  pythonImportsCheck = [ "chex" ];
 
   nativeCheckInputs = [
-    jaxlib
+    cloudpickle
+    dm-tree
     pytestCheckHook
   ];
 
-  disabledTests = [
-    # See https://github.com/deepmind/chex/issues/204.
-    "test_uninspected_checks"
+  # AttributeError: module 'unittest' has no attribute 'makeSuite'
+  # https://github.com/google-deepmind/chex/issues/371
+  # TODO: re-enable at next release
+  doCheck = pythonOlder "3.13";
 
-    # These tests started failing at some point after upgrading to 0.1.5
-    "test_useful_failure"
-    "TreeAssertionsTest"
-    "PmapFakeTest"
-    "WithDeviceTest"
-  ];
-
-  meta = with lib; {
-    description = "Chex is a library of utilities for helping to write reliable JAX code.";
+  meta = {
+    description = "Library of utilities for helping to write reliable JAX code";
     homepage = "https://github.com/deepmind/chex";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ndl ];
+    changelog = "https://github.com/google-deepmind/chex/releases/tag/v${version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ ndl ];
   };
 }

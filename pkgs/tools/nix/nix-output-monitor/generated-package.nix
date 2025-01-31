@@ -19,7 +19,6 @@
   lib,
   lock-file,
   MemoTrie,
-  mtl,
   nix-derivation,
   optics,
   random,
@@ -32,16 +31,17 @@
   terminal-size,
   text,
   time,
+  transformers,
   typed-process,
-  wcwidth,
+  unix,
   word8,
 }:
 mkDerivation {
   pname = "nix-output-monitor";
-  version = "2.0.0.6";
+  version = "2.1.4";
   src = fetchzip {
-    url = "https://github.com/maralorn/nix-output-monitor/archive/refs/tags/v2.0.0.6.tar.gz";
-    sha256 = "1adxg2bws7fqbmzfna5hr28fh8j10gvf57j6b0xbkhh4hgj4h9xd";
+    url = "https://code.maralorn.de/maralorn/nix-output-monitor/archive/v2.1.4.tar.gz";
+    sha256 = "0ghpbq6a1cmh0xy42ipg8l1qi4pjdjn0df5am26587w396r81n5r";
   };
   isLibrary = true;
   isExecutable = true;
@@ -60,7 +60,6 @@ mkDerivation {
     hermes-json
     lock-file
     MemoTrie
-    mtl
     nix-derivation
     optics
     relude
@@ -72,7 +71,7 @@ mkDerivation {
     terminal-size
     text
     time
-    wcwidth
+    transformers
     word8
   ];
   executableHaskellDepends = [
@@ -90,7 +89,6 @@ mkDerivation {
     hermes-json
     lock-file
     MemoTrie
-    mtl
     nix-derivation
     optics
     relude
@@ -102,8 +100,9 @@ mkDerivation {
     terminal-size
     text
     time
+    transformers
     typed-process
-    wcwidth
+    unix
     word8
   ];
   testHaskellDepends = [
@@ -122,7 +121,6 @@ mkDerivation {
     HUnit
     lock-file
     MemoTrie
-    mtl
     nix-derivation
     optics
     random
@@ -135,13 +133,13 @@ mkDerivation {
     terminal-size
     text
     time
+    transformers
     typed-process
-    wcwidth
     word8
   ];
-  homepage = "https://github.com/maralorn/nix-output-monitor";
-  description = "Parses output of nix-build to show additional information";
+  homepage = "https://code.maralorn.de/maralorn/nix-output-monitor";
+  description = "Processes output of Nix commands to show helpful and pretty information";
   license = lib.licenses.agpl3Plus;
   mainProgram = "nom";
-  maintainers = [lib.maintainers.maralorn];
+  maintainers = [ lib.maintainers.maralorn ];
 }
